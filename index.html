@@ -29,8 +29,17 @@
   <script type="importmap">
     { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
   </script>
+  <script>
+    // Báo lỗi hiện thẳng trên trang (để thấy nếu Three.js không tải được hoặc có lỗi JS).
+    function showErr(m) { var d = document.getElementById('err'); if (!d) return; d.style.display = 'block'; d.textContent += m + '\n'; }
+    addEventListener('error', function (e) { showErr('Lỗi: ' + (e.message || e.type) + (e.filename ? '\n  ' + e.filename + ':' + e.lineno : '')); });
+    addEventListener('unhandledrejection', function (e) { showErr('Lỗi Promise: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
+    // Đồng hồ canh: nếu sau 4s game chưa sẵn sàng -> gần như chắc chắn Three.js không tải được.
+    setTimeout(function () { if (!window.__gameReady) showErr('Game chưa khởi động sau 4s.\nKhả năng cao: không tải được Three.js từ CDN (mạng bị chặn), hoặc có lỗi JS.\nMở Console (F12) để xem chi tiết.'); }, 4000);
+  </script>
 </head>
 <body>
+  <div id="err" style="position:fixed;inset:0;z-index:9999;display:none;padding:20px;color:#ffb4b4;background:rgba(30,0,0,0.95);font:13px/1.5 monospace;white-space:pre-wrap;overflow:auto"></div>
   <div id="app"></div>
   <div id="hud">
     <div class="left"><span class="pill" id="hud-flames">🔥 3</span></div>

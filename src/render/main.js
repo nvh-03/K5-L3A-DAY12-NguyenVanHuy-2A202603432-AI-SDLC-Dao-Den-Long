@@ -151,9 +151,11 @@ function updateHUD() {
   const clock = el('clock'); clock.textContent = mm + ':' + ss; clock.classList.toggle('danger', tl <= 30);
   const bar = el('motebar'); if (bar.children.length !== TUNING.carry_capacity) { bar.innerHTML = ''; for (let i = 0; i < TUNING.carry_capacity; i++) bar.appendChild(document.createElement('i')); }
   [...bar.children].forEach((c, i) => c.className = i < p.carried ? 'on' : '');
-  el('hud-dash').textContent = p.dash_cd_s > 0 ? 'Lướt ' + p.dash_cd_s.toFixed(1) + 's' : 'Lướt ✔';
-  el('hud-pulse').textContent = p.pulse_cd_s > 0 ? 'Tỏa ' + p.pulse_cd_s.toFixed(1) + 's' : 'Tỏa ✔';
-  const charm = el('hud-charm'); charm.style.display = p.charm_s > 0 ? 'inline-block' : 'none'; charm.textContent = '🍃 Bùa ' + p.charm_s.toFixed(0) + 's';
+  // sim.player đếm bằng tick (dashCd, pulseCd, charm); đổi sang giây tại đây.
+  const dashS = p.dashCd / TICK_RATE, pulseS = p.pulseCd / TICK_RATE, charmS = p.charm / TICK_RATE;
+  el('hud-dash').textContent = dashS > 0 ? 'Lướt ' + dashS.toFixed(1) + 's' : 'Lướt ✔';
+  el('hud-pulse').textContent = pulseS > 0 ? 'Tỏa ' + pulseS.toFixed(1) + 's' : 'Tỏa ✔';
+  const charm = el('hud-charm'); charm.style.display = charmS > 0 ? 'inline-block' : 'none'; charm.textContent = '🍃 Bùa ' + charmS.toFixed(0) + 's';
 }
 function resize() { const w = app.clientWidth, h = app.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener('resize', resize);
@@ -165,9 +167,16 @@ function loop(now) {
   if (mode === 'play') {
     acc += dt;
     while (acc >= DT) { readInput(); sim.step(held); acc -= DT; if (sim.status !== 'playing') { mode = 'ending'; break; } }
-    sync(); updateCamera(); updateHUD();
+    sync(); updateCamera();
     if (mode === 'ending') endNight();
   }
+  // Vẽ trước HUD: một lỗi ở HUD không được làm đen canvas.
   renderer.render(scene, camera);
+  if (mode === 'play') { try { updateHUD(); } catch (e) { console.error('HUD:', e); } }
 }
+// Hiện sẵn đảo + Mây phía sau màn hình mở đầu (để thấy ngay có gì đó, không bị đen).
+buildWorldMeshes(1);
+playerMesh.position.set(0, 0, 0);
+camera.position.set(0, 22, 40); camera.lookAt(0, 0, 0);
 showIntro(1); resize(); requestAnimationFrame(loop);
+window.__gameReady = true; // báo cho đồng hồ canh trong index.html biết game đã khởi động
