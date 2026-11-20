@@ -1,0 +1,1 @@
+{ "_note": "Châm dầu lên >= 30 khi Bóng trong vùng 6 m -> bị đẩy ra mép 6 m, không gây sát thương.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,23.5], "carried": 5 }, "lanterns": [{ "id": "L1", "lit": true, "fuel": 20 }], "shades": [{ "id": "S1", "pos": [0,0,26.5], "state": "drain", "target_lantern_id": "L1" }] }

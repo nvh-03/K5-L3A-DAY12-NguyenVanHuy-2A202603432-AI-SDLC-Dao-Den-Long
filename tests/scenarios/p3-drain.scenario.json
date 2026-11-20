@@ -1,0 +1,1 @@
+{ "_note": "Bóng wander cách đèn yếu (fuel 20) 1.5 m, Mây ở xa -> drain, hút 5/s + hao 1/s, fuel_drain mỗi 60 tick.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,-30] }, "lanterns": [{ "id": "L1", "lit": true, "fuel": 20 }], "shades": [{ "id": "S1", "pos": [0,0,26.5], "state": "wander" }] }

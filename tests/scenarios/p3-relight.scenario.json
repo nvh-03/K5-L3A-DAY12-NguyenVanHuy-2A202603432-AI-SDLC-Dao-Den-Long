@@ -1,0 +1,1 @@
+{ "_note": "Đèn L1 từng sáng (ever_lit) đã tắt; Mây mang 5 -> thắp lại chỉ tốn 5, +40, relit_count=1.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,24], "carried": 5 }, "lanterns": [{ "id": "L1", "lit": false, "ever_lit": true }] }

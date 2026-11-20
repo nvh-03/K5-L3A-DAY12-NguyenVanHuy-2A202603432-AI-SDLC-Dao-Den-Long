@@ -1,4 +1,0 @@
-{ "_note": "Đêm 1: 4 đèn đã sáng, Mây cạnh L1 mang 10 đom đóm. Nạp L1 là thắng.",
-  "random_motes": false, "random_shades": false,
-  "player": { "pos": [0,0,24], "carried": 10, "flames": 3 },
-  "lanterns": [{"id":"L2","lit":true},{"id":"L3","lit":true},{"id":"L4","lit":true},{"id":"L5","lit":true}] }

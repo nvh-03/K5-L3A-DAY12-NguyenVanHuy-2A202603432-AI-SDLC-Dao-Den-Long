@@ -1,0 +1,1 @@
+{ "_note": "Châm dầu: fuel 45.5, mang 20 -> used = ceil(54.5/10) = 6, fuel = 100.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,24], "carried": 20 }, "lanterns": [{ "id": "L1", "lit": true, "fuel": 45.5 }] }

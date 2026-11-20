@@ -1,0 +1,1 @@
+{ "_note": "Thay win-standard (Phase 2): 4 đèn sáng, nạp L1 -> 5/5 sáng nhưng Đêm KHÔNG kết thúc.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,24], "carried": 10, "flames": 3 }, "lanterns": [{"id":"L2","lit":true},{"id":"L3","lit":true},{"id":"L4","lit":true},{"id":"L5","lit":true}] }

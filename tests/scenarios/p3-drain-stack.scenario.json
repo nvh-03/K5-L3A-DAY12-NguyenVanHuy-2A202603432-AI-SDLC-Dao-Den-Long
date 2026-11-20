@@ -1,0 +1,1 @@
+{ "_note": "Hai Bóng cùng hút L1 -> cộng dồn 10/s + hao 1/s.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,-30] }, "lanterns": [{ "id": "L1", "lit": true, "fuel": 20 }], "shades": [{ "id": "S1", "pos": [0,0,26.5], "state": "drain", "target_lantern_id": "L1" }, { "id": "S2", "pos": [0,0,23.5], "state": "drain", "target_lantern_id": "L1" }] }

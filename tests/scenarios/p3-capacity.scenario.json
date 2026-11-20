@@ -1,0 +1,1 @@
+{ "_note": "Sức chứa = 10 + 2*successful_lights, tối đa 20. Mang 11, thắp L1 (10) -> successful_lights 1 -> sức chứa 12.", "random_motes": false, "random_shades": false, "player": { "pos": [0,0,24], "carried": 11 } }

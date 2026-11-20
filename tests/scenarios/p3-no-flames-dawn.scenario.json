@@ -1,0 +1,1 @@
+{ "_note": "Tick cuối: Bóng chạm Mây còn 1 Ngọn Lửa dù đủ đèn -> no_flames được xét trước.", "random_motes": false, "random_shades": false, "time_left_s": 0.0166667, "player": { "pos": [0,0,0], "flames": 1 }, "lanterns": [{ "id": "L1", "lit": true }, { "id": "L2", "lit": true }, { "id": "L3", "lit": true }], "shades": [{ "id": "S1", "pos": [0,0,0.5], "state": "chase" }] }

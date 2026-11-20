@@ -19,8 +19,28 @@ Ghi lại thay đổi chính theo từng phase. Định dạng theo [Keep a Chan
 - Bản web: chuỗi 3 Đêm, HUD đầy đủ, bảng màu chuẩn, ánh sáng môi trường theo tiến độ.
 - 47 test (`npm test`), scenario/bằng chứng cho mỗi tính năng (`docs/proof/phase-2/`), spec có acceptance criteria (`docs/spec/phase-2.md`).
 
-## [phase-3]
-- _Mô tả những gì hoàn thành ở Phase 3._
+## [phase-3] — Ticket-03 "Đèn cạn dầu", Test Contract v1.2
+
+Quyết định thiết kế: [docs/notes/adr-001-den-can-dau.md](docs/notes/adr-001-den-can-dau.md). Bằng chứng: [docs/proof/phase-3.md](docs/proof/phase-3.md).
+
+### Thay đổi phá vỡ tương thích (breaking)
+- **Luật thắng:** bỏ "thắng ngay khi tất cả đèn sáng". Giờ chỉ thắng ở bình minh nếu còn sống và số đèn đang sáng ≥ `ceil(0.6 × tổng)` (3/5, 4/6, 5/7). `game_over.reason`: `dawn_survived` (thắng), `dawn` hoặc `no_flames` (thua); không còn kết thúc sớm khi thắp đủ.
+- **Thời lượng Đêm:** 300/330/360 s → **240/270/300 s**.
+- **Đèn sáng có thể tắt:** dầu tối đa 100, hao 1/s; hết dầu thì tắt (`deposited = 0`, giữ `ever_lit`), phát `lantern_out`.
+- **Đèn đã sáng nhận thêm đom đóm** (thay luật "không nhận"): châm dầu `used = min(mang, ceil((100 − fuel)/10))`, event `refuel`.
+- **Bóng Mực được vào vùng an toàn** của đèn có fuel < 30 (thay luật "không bao giờ vào"); trạng thái mới `drain` (hút 5/s, cộng dồn).
+- **Công thức điểm thay toàn bộ:** +5/đom đóm nạp (trước +10), +100 thắp lần đầu, +40 thắp lại, +5 trúng Tỏa Sáng (+15 nếu đang drain), thưởng bình minh khi thắng: +50 + floor(fuel) mỗi đèn sáng và +50 mỗi Ngọn Lửa; **bỏ thưởng thời gian**.
+- **Sức chứa** không còn cố định 10: `10 + 2 × successful_lights`, tối đa 20.
+- **Contract v1.2:** snapshot đèn thêm `fuel` (1 chữ số), `ever_lit`, `relit_count`; `player.capacity`; `lantern_lit.relight`; event `refuel`, `lantern_out`, `fuel_drain`; scenario nhận `fuel`, `ever_lit`, `successful_lights`, `target_lantern_id`. `game.contract.json`: `contract_version "1.2"` và các khoá tuning mới; khoá `score` đổi tên theo công thức mới.
+
+### Thêm
+- Thắp lại đèn từng sáng chỉ tốn 5 đom đóm.
+- Web: thanh dầu trên đèn sáng, đèn và thanh nhấp nháy 1 Hz khi fuel < 30, đèn tắt xẹp 20% và có vết rách giấy, HUD "mang / sức chứa" và "đèn sáng / cần", ánh sáng môi trường giảm khi đèn tắt.
+- Cài đặt **Bảng màu dễ phân biệt** (lưu localStorage, phím C): viền và mắt Bóng Mực #00B3FF, cảnh báo UI trắng kèm ⚠.
+- 18 scenario mới `tests/scenarios/p3-*`; bộ kiểm contract v1.2 (schema event mới, đối chiếu `game.contract.json`); fuzz có biến thể đèn/dầu và cổng độ phủ nhánh dầu.
+
+### Gỡ bỏ
+- Scenario `win-standard` (thắng khi thắp đủ đèn): luật không còn đúng, thay bằng `p3-no-early-win`.
 
 ## [phase-4] / [v1.0.0]
 - _Bản phát hành cuối: mô tả tính năng, bản chạy được, link video demo._

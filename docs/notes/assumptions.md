@@ -36,6 +36,21 @@ Khai trong [`src/core/config.js`](../../src/core/config.js) (`WORLD`) và giải
 | 17 | Spawn Đêm 3 | Điểm xuất phát Mây = (0,0,0) tầng 0 (dưới chân tháp vẫn đứng được). | Ticket không nêu riêng; (0,0,0) tầng 0 là chỗ hợp lệ. |
 | 18 | `vel`/`grounded`/`invuln` trong snapshot | `vel`=[vx,vy,vz] m/s; `grounded` bool; `invuln` = số tick còn lại; `dash_cd_s/pulse_cd_s/charm_s` = giây. | Tên `_s` ngụ ý giây; `invuln` không có `_s` nên để theo tick. |
 
+## Phase 3 — giả định bổ sung (Ticket-03)
+
+| # | Chỗ mơ hồ | Giả định đã chọn | Lý do |
+|---|---|---|---|
+| 19 | Nạp đèn tắt sau Ticket-03 | Vẫn nạp **từng phần** như Ticket-02 (`min(đang mang, còn thiếu)`, event `deposit`); "còn thiếu" tính theo chi phí 10 (chưa từng sáng) hoặc 5 (`ever_lit`). Đủ thì sáng, fuel = 100. | Ticket-03 chỉ đổi chi phí thắp lại, không thay luật nạp nhiều lần. |
+| 20 | "Đi về đèn tắt gần nhất như trước" | Spec trước không có luật này. Bóng `wander` không có đèn yếu thì đi về đèn **chưa sáng** gần nhất (XZ, hoà thì id nhỏ) với tốc độ trôi 1.5 m/s và dừng cách 1 m; không còn đèn tắt thì trôi theo hướng seeded như Phase 2. | Làm theo câu chữ ticket; giữ tốc độ wander cũ. |
+| 21 | Tốc độ khi đi tới đèn yếu | Tốc độ Bóng chuẩn của Đêm (4.0, Đêm 3 là 4.5). | Ticket không nêu; nhắm mục tiêu có chủ đích nên dùng tốc độ chạy. |
+| 22 | Thứ tự các điều kiện thoát `drain` | Xét theo thứ tự ticket liệt kê: Mây trong 6 m → `chase` trước; sau đó đèn tắt / fuel ≥ 30 / cách > 2 m → `wander`. Đèn tắt ở bước 2a thì Bóng về `wander` ngay trong tick đó. | Ticket liệt kê `chase` đầu tiên. |
+| 23 | Mốc `fuel_drain` "mỗi 60 tick" | Mỗi Bóng có bộ đếm riêng, bắt đầu từ 0 khi vào `drain`; ghi khi đã hút đủ 60, 120, … tick. `fuel` = dầu còn lại của đèn sau khi trừ ở tick đó. | Event tả trạng thái đèn; tránh ghi ngay tick đầu. |
+| 24 | Đẩy Bóng khi châm dầu lên ≥ 30 | Áp cho **mọi** Bóng trong 6 m (không chỉ con đang `drain`): đẩy ra mép ngay ở bước 6 (≤ 30 tick) và miễn sát thương 30 tick; giống luật vừa thắp. | Câu ticket nói "các con đó" = các Bóng trong vùng 6 m. |
+| 25 | Fuel 1 chữ số thập phân khi đèn sắp tắt | Lưu dầu bằng số nguyên đơn vị 1/60; xuất `round(fuel, 1)`. Hai tick cuối trước khi tắt có thể xuất `lit: true, fuel: 0` (dầu < 0.05). Đèn tắt luôn `fuel: 0`. | Làm tròn trung thực, không bịa số. |
+| 26 | Scenario đèn `lit: true` | Ngầm `ever_lit = true`; không có `fuel` thì 100; không có `deposited` thì 10. Đèn đặt sẵn không tính vào `successful_lights`. | Đèn đang sáng chắc chắn đã từng sáng. |
+| 27 | Ngưỡng thắng `ceil(0.6 × tổng)` | `ceil(win_ratio × tổng − 1e-9)` → 3/5, 4/6, 5/7 (đã kiểm bằng test cho cả 3 Đêm). | Phòng hờ: nếu đổi `win_ratio`, sai số số thực (vd. 0.6 × 6 = 3.5999…) có thể làm `ceil` nhảy thêm 1 ở giá trị biên. |
+| 28 | Điểm game nhiều Đêm | Không đổi so với Ticket-02: tổng điểm các Đêm đã thắng. Thua thì chơi lại Đêm đó. | Ticket ghi "không đổi". |
+
 ## Quy ước output chưa được contract chốt chính xác
 
 Bản tóm tắt PRD nói "mỗi event có cấu trúc `data` riêng" nhưng không liệt kê từng trường. Đã chọn schema rõ ràng, nhất quán (xem [README](../../README.md) mục headless). Nếu bản contract chính thức khác, chỉ cần chỉnh khâu tạo `data` trong [`src/core/sim.js`](../../src/core/sim.js) và `headlessRun.js` — lõi mô phỏng không đổi.

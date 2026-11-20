@@ -1,0 +1,1 @@
+{ "_note": "Còn 1 s, 3/5 đèn sáng -> dawn_survived; thưởng 50+floor(fuel) mỗi đèn + 50 mỗi Ngọn Lửa.", "random_motes": false, "random_shades": false, "time_left_s": 1, "lanterns": [{ "id": "L1", "lit": true }, { "id": "L2", "lit": true }, { "id": "L3", "lit": true, "fuel": 50 }] }

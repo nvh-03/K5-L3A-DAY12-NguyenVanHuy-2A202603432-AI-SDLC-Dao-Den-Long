@@ -1,0 +1,1 @@
+{ "_note": "Fuel 0.5 hao 1/s -> tắt sau 30 tick, deposited=0, ever_lit vẫn true.", "random_motes": false, "random_shades": false, "lanterns": [{ "id": "L1", "lit": true, "fuel": 0.5 }] }
