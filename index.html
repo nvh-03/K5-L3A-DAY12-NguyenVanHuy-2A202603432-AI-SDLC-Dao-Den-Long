@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đảo Đèn Lồng — Đêm 1</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0a14; font-family: system-ui, sans-serif; }
+    #app { position: fixed; inset: 0; }
+    #hud { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 14px; flex-wrap: wrap;
+      color: #ffd9a0; text-shadow: 0 1px 3px #000; pointer-events: none; user-select: none; font-size: 15px; }
+    .pill { background: rgba(20,16,40,0.55); border: 1px solid rgba(255,180,90,0.25); padding: 6px 12px; border-radius: 999px; }
+    #overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 10px;
+      background: rgba(8,6,18,0.78); color: #ffe6bf; text-align: center; }
+    #overlay h1 { font-size: 42px; margin: 0; } #overlay .score { font-size: 22px; color: #ffcf5a; }
+    #overlay button { margin-top: 14px; font-size: 16px; padding: 10px 22px; border-radius: 10px; cursor: pointer; background: #ffb24a; color: #201405; border: none; font-weight: 700; }
+    #help { position: fixed; bottom: 12px; left: 12px; color: #9aa0c0; font-size: 12px; pointer-events: none; background: rgba(20,16,40,0.45); padding: 6px 10px; border-radius: 8px; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }</script>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud">
+    <span class="pill" id="hud-flames">🔥 3</span>
+    <span class="pill" id="hud-carried">✨ 0 / 5</span>
+    <span class="pill" id="hud-lanterns">🏮 0 / 5</span>
+    <span class="pill" id="hud-score">Điểm 0</span>
+    <span class="pill" id="hud-time">⏳ 180s</span>
+    <span class="pill" id="hud-pulse">Pulse sẵn sàng</span>
+  </div>
+  <div id="overlay">
+    <h1 id="ov-title">Thắng!</h1>
+    <p id="ov-sub"></p>
+    <p class="score" id="ov-score"></p>
+    <button id="ov-restart">Chơi lại (R)</button>
+  </div>
+  <div id="help">WASD di chuyển · ◀▶ xoay cam · Space nhảy · E nạp đèn · Q tỏa sáng · R chơi lại</div>
+  <script type="module" src="./src/render/main.js"></script>
+</body>
+</html>

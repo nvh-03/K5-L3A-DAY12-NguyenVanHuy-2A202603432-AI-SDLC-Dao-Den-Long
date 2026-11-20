@@ -1,0 +1,29 @@
+# Bí mật — KHÔNG commit
+.env
+.env.*
+*.key
+*.pem
+secrets.*
+.claude/settings.local.json
+
+# Phụ thuộc / build
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Hệ điều hành / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Log
+*.log
+
+# Văn bản ticket/PRD dán tay (tham khảo local, không thuộc deliverable)
+/phase 1.md
+/phase 2.md

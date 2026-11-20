@@ -1,0 +1,35 @@
+Contract: hình dạng output
+  ✓ dòng đầu là snapshot tick 0
+  ✓ sim_tick = tick
+  ✓ time_left_s ban đầu = 180
+  ✓ có đúng 5 đèn
+  ✓ player có pos/flames/carried
+  ✓ dòng cuối là end
+  ✓ end.state hợp lệ
+  ✓ end.ticks = 30
+  ✓ snapshot tại 0,10,20,30
+Tất định
+  ✓ hai lần chạy giống hệt
+  ✓ seed khác -> khác
+Cơ chế: nạp đèn & thắng (schema v1.0)
+  ✓ deposit có lantern_id/amount/deposited
+  ✓ lantern_lit L1
+  ✓ game_over {result:won, reason:all_lit}
+  ✓ end.state won
+  ✓ deposit ở tick 1
+Cơ chế: pulse (stunned_ids)
+  ✓ pulse.data.stunned_ids chứa S1
+  ✓ S1 stunned ở snapshot tick 1
+  ✓ mất 2 đom đóm sau pulse
+Cơ chế: trúng đòn (player_hit by/flames/dropped)
+  ✓ player_hit.data.by = shade
+  ✓ flames còn 2
+  ✓ rơi 2 đom đóm
+Contract: inputs {frames} sai -> code 2
+  ✓ tick không tăng -> code 2
+  ✓ thiếu mảng frames -> code 2
+  ✓ frames hợp lệ chạy được
+Contract: làm tròn 3 số
+  ✓ player.pos làm tròn 3 số
+
+Kết quả: 26 đạt, 0 trượt
