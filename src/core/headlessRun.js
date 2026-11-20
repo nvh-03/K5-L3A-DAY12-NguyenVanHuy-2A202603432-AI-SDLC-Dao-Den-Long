@@ -1,15 +1,13 @@
-// Vòng chạy headless thuần (Test Contract v1.0). Không I/O ở đây.
+// Vòng chạy headless thuần (Test Contract v1.1). Không I/O ở đây.
 import { Simulation, DEFAULT_INPUT } from './sim.js';
 
-// inputs: object { frames: [...] } theo contract. Trả về Map tick -> frame.
 function buildInputMap(inputs) {
   const map = new Map();
   if (inputs == null) return map;
-  const frames = inputs.frames;
-  if (!Array.isArray(frames)) throw { code: 2, message: 'inputs phải có mảng "frames"' };
+  if (!Array.isArray(inputs)) throw { code: 2, message: 'inputs phải là mảng frame' };
   let last = -1;
-  for (const f of frames) {
-    if (typeof f !== 'object' || f === null || typeof f.tick !== 'number' || !Number.isInteger(f.tick)) throw { code: 2, message: 'mỗi frame cần tick nguyên' };
+  for (const f of inputs) {
+    if (typeof f !== 'object' || f === null || typeof f.tick !== 'number' || !Number.isInteger(f.tick)) throw { code: 2, message: 'mỗi frame cần trường tick nguyên' };
     if (f.tick <= last) throw { code: 2, message: `tick phải tăng nghiêm ngặt (gặp ${f.tick} sau ${last})` };
     last = f.tick;
     if (f.move !== undefined && (!Array.isArray(f.move) || f.move.length !== 2)) throw { code: 2, message: 'move phải là [x, z]' };
@@ -22,13 +20,16 @@ function applyFrame(held, frame) {
   if (!frame) return;
   if (frame.move !== undefined) held.move = [frame.move[0], frame.move[1]];
   if (frame.cam_yaw_deg !== undefined) held.cam_yaw_deg = frame.cam_yaw_deg;
-  for (const b of ['jump', 'interact', 'pulse']) if (frame[b] !== undefined) held[b] = !!frame[b];
+  for (const b of ['jump', 'interact', 'pulse', 'dash', 'pause']) if (frame[b] !== undefined) held[b] = !!frame[b];
 }
 
-export function runHeadless({ seed = 1, ticks = 0, scenario = null, inputs = null, snapshotEvery = 10, tuning = {}, score = {} }) {
-  const sim = new Simulation({ seed, tuning, score, scenario });
+export function runHeadless({ seed = 1, night = 1, ticks = 0, scenario = null, inputs = null, snapshotEvery = 10 }) {
+  const sim = new Simulation({ seed, night, scenario });
   const inputMap = buildInputMap(inputs);
   const lines = [];
+
+  // night_start ở tick 0
+  lines.push({ type: 'event', tick: 0, name: 'night_start', data: { night } });
   if (0 % snapshotEvery === 0) lines.push(sim.snapshot());
 
   const held = { ...DEFAULT_INPUT, move: [0, 0] };
@@ -44,6 +45,6 @@ export function runHeadless({ seed = 1, ticks = 0, scenario = null, inputs = nul
       return lines;
     }
   }
-  lines.push({ type: 'end', ticks, state: sim.status, score: sim.scoreValue });
+  lines.push({ type: 'end', ticks: ticks, state: sim.status, score: sim.scoreValue });
   return lines;
 }

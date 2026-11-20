@@ -1,5 +1,5 @@
 // Seeded deterministic PRNG (mulberry32).
-// Cùng seed -> cùng chuỗi số, bảo đảm tính tất định của Test Contract.
+// Cùng seed -> cùng chuỗi số, để bảo đảm tính tất định của Test Contract.
 export function makeRng(seed) {
   let a = (seed >>> 0) || 1;
   return function next() {

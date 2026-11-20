@@ -1,6 +1,2 @@
-{
-  "random_motes": false,
-  "random_shades": false,
-  "player": { "pos": [0, 0, 0], "carried": 2, "flames": 3 },
-  "shades": [ { "id": "S1", "pos": [0, 0, 3] } ]
-}
+{ "_note": "Pulse choáng Bóng Mực gần.", "random_motes": false, "random_shades": false,
+  "player": {"pos":[0,0,0],"carried":3}, "shades":[{"id":"S1","pos":[0,0,3],"state":"wander"}] }

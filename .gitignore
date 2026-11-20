@@ -21,7 +21,7 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Log
+# File lớn tạm (demo.mp4 nên đính kèm Release thay vì commit)
 *.log
 
 # Văn bản ticket/PRD dán tay (tham khảo local, không thuộc deliverable)

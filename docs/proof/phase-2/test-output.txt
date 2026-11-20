@@ -1,0 +1,84 @@
+
+> dao-den-long@1.0.0 test
+> node tests/all.js
+
+
+===== run.js =====
+Số chuẩn & snapshot v1.1
+  ✓ night_start ở tick 0
+  ✓ Đêm 1 time_left = 300
+  ✓ night=1 trong snapshot
+  ✓ 5 đèn Đêm 1
+  ✓ player có vel/grounded/invuln/dash_cd_s/pulse_cd_s/charm_s
+  ✓ có mảng wind/drifters/charms/motes
+  ✓ 20 đom đóm lúc đầu
+  ✓ Đêm 2 time_left = 330, 6 đèn
+  ✓ Đêm 3 time_left = 360, 7 đèn
+Nạp đèn & thắng (điểm chuẩn)
+  ✓ deposit amount 10
+  ✓ lantern_lit L1
+  ✓ game_over reason won
+  ✓ end.state won
+  ✓ điểm có thưởng thắng (>400)
+Lướt (dash)
+  ✓ có event dash
+  ✓ vel ~ 14 m/s khi lướt
+  ✓ dash_cd_s = 1.5 sau khi lướt
+Tỏa Sáng (pulse)
+  ✓ có event pulse với hit S1
+  ✓ S1 state stunned
+  ✓ carried = 0 sau pulse
+  ✓ pulse_cd_s = 3.0
+Bóng Mực gây hit & recoil
+  ✓ player_hit reason shade
+  ✓ flames 3 -> 2
+  ✓ rơi 2 đom đóm
+  ✓ bóng chuyển recoil
+  ✓ có đom đóm rơi (kind dropped)
+Rơi khỏi đảo & hồi sinh
+  ✓ có player_hit reason fall
+  ✓ fall: mất toàn bộ đom đóm (lost=5)
+  ✓ fall: -1 Ngọn Lửa
+Gió Lạc cướp
+  ✓ có drifter_steal
+  ✓ cướp 3 đom đóm
+  ✓ carried còn 3
+Gió Lạc trúng pulse thả đồ
+  ✓ có drifter_drop
+  ✓ thả lại 3
+Bùa Gió (charm)
+  ✓ có charm_picked C1
+  ✓ charm_s = 10
+Tạm dừng (pause)
+  ✓ có event paused
+  ✓ có event resumed
+  ✓ snapshot state paused
+  ✓ sim_tick đứng yên khi pause
+Bục nhảy
+  ✓ bục bắn lên (vel Y > 13)
+  ✓ rời đất sau khi bắn
+Gió mạnh Đêm 3
+  ✓ có snapshot wind.active = true
+Tất định
+  ✓ cùng seed -> JSONL giống hệt
+Hiệu năng
+  ✓ 18000 tick < 10 s (yêu cầu <=30s)
+Contract: lỗi & làm tròn
+  ✓ tick không tăng -> code 2
+  ✓ toạ độ làm tròn 3 số
+
+Kết quả: 47 đạt, 0 trượt
+
+===== contract-check.js =====
+(1) Kiểm tra tuân thủ Contract v1.1
+  46 lần chạy, 0 có lỗi
+
+Contract check: ĐẠT
+
+===== invariants.js =====
+(2) Fuzz input + bất biến + tất định (3 Đêm)
+  30 lần chạy, 0 có lỗi
+
+Invariants: ĐẠT
+
+>>> TẤT CẢ ĐẠT

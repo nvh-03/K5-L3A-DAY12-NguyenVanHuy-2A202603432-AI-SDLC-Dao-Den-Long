@@ -1,13 +1,18 @@
 {
   "name": "dao-den-long",
-  "version": "0.1.0",
-  "description": "Đảo Đèn Lồng - game 3D (Phase 1 / PRD-0). Lõi tất định + headless theo Test Contract v1.0.",
+  "version": "1.0.0",
+  "description": "Đảo Đèn Lồng - game 3D (Phase 1 / PRD-0). Lõi mô phỏng tất định + headless theo Test Contract v1.0.",
   "type": "module",
   "private": true,
   "scripts": {
     "web": "node bin/serve.js",
     "headless": "node bin/headless.js",
-    "test": "node tests/run.js"
+    "test": "node tests/all.js",
+    "test:unit": "node tests/run.js",
+    "test:contract": "node tests/contract-check.js",
+    "test:invariants": "node tests/invariants.js"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }
