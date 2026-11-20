@@ -1,11 +1,11 @@
-// Chạy toàn bộ test: đơn vị/cơ chế + tuân thủ Contract + fuzz/bất biến.
+// Chạy toàn bộ test: đơn vị/cơ chế + tuân thủ Contract + fuzz/bất biến + nền tảng Phase 4.
 // npm test -> node tests/all.js
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
-const files = ['run.js', 'contract-check.js', 'invariants.js'];
+const files = ['run.js', 'contract-check.js', 'invariants.js', 'platform.js'];
 let failed = false;
 for (const f of files) {
   console.log(`\n===== ${f} =====`);

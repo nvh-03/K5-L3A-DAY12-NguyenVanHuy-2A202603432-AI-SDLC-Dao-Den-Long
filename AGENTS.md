@@ -5,8 +5,9 @@ Hướng dẫn cố định cho AI. **Giữ nguyên trong repo và lịch sử g
 ## Bối cảnh
 
 - **Game:** Đảo Đèn Lồng — game 3D, **3 Đêm** (Đảo Bến / Đảo Cau / Đảo Chuông). Mây gom đom đóm thắp và **giữ dầu** cho đèn tới bình minh, né Bóng Mực (hút dầu) & Gió Lạc.
-- **Kiến trúc:** lõi JS thuần **tất định** (`src/core/`) dùng chung cho web (Three.js, `src/render/`) và **headless** (Node, `bin/headless.js`) theo **Test Contract v1.2**.
-- **Nguyên tắc vàng:** mọi logic gameplay nằm trong `src/core/`. Render & âm thanh không chứa luật chơi. Phần sáng tạo thêm phải **tắt khi headless** và không đổi output.
+- **Kiến trúc:** lõi JS thuần **tất định** (`src/core/`) dùng chung cho web (Three.js, `src/render/`) và **headless** (Node, `bin/headless.js`) theo **Test Contract v1.3**.
+- **Nguyên tắc vàng:** mọi logic gameplay nằm trong `src/core/`. Render & âm thanh không chứa luật chơi. Phần sáng tạo thêm (vd. cây/đá: `new Simulation({ creative: true })`) phải **tắt khi headless/bench/soak** và không đổi output. Sau khi sửa lõi: so lại `docs/proof/phase-3/full-night1-seed42.jsonl` (bỏ qua CRLF).
+- **Render phải khớp `geometry.js`** (từng có lỗi vẽ sàn Đêm 3 ngược nửa). Không thêm event vào lõi chỉ để phục vụ UI.
 
 ## Lệnh
 
@@ -14,8 +15,10 @@ Hướng dẫn cố định cho AI. **Giữ nguyên trong repo và lịch sử g
 |---|---|
 | Chạy web | `npm run web` → http://localhost:8080 |
 | Headless | `node bin/headless.js --seed <int> --night <1\|2\|3> --ticks <int> --out out.jsonl` |
-| Test | `npm test` (3 cổng: đơn vị/cơ chế + tuân thủ Contract + fuzz/bất biến) |
-| Test lẻ | `npm run test:unit` · `test:contract` · `test:invariants` |
+| Test | `npm test` (4 cổng: cơ chế + tuân thủ Contract + fuzz/bất biến + nền tảng Phase 4) |
+| Test lẻ | `npm run test:unit` · `test:contract` · `test:invariants` · `test:platform` |
+| Bench / Soak | `npm run bench` (mở Chrome/Edge ~35 s) · `npm run soak` |
+| Ảnh README | `node bin/bench.js --preview docs/media/x.png --night <n>` (xem ảnh để tự kiểm đồ hoạ) |
 
 ## Quy ước / điều cấm
 

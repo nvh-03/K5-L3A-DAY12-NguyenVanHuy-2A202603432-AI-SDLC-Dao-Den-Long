@@ -51,6 +51,21 @@ Khai trong [`src/core/config.js`](../../src/core/config.js) (`WORLD`) và giải
 | 27 | Ngưỡng thắng `ceil(0.6 × tổng)` | `ceil(win_ratio × tổng − 1e-9)` → 3/5, 4/6, 5/7 (đã kiểm bằng test cho cả 3 Đêm). | Phòng hờ: nếu đổi `win_ratio`, sai số số thực (vd. 0.6 × 6 = 3.5999…) có thể làm `ceil` nhảy thêm 1 ở giá trị biên. |
 | 28 | Điểm game nhiều Đêm | Không đổi so với Ticket-02: tổng điểm các Đêm đã thắng. Thua thì chơi lại Đêm đó. | Ticket ghi "không đổi". |
 
+## Phase 4 — giả định bổ sung (Ticket-04)
+
+| # | Chỗ mơ hồ | Giả định đã chọn | Lý do |
+|---|---|---|---|
+| 29 | "Bóng Mực vẫn di chuyển theo luật wander bình thường" trong bench | Dùng đúng hàm `_wanderStep` của lõi (về đèn tắt gần nhất / trôi) cùng chặn vùng an toàn; không chuyển `chase` dù Mây trong 12 m; không bao giờ `drain` vì dầu không hao. | Ticket yêu cầu wander và cảnh giống nhau giữa các lần đo. |
+| 30 | "Rải đều trên đảo" | Rải đều theo diện tích (r = 39·√u, góc đều) bằng RNG seed 42 trên đảo Đêm 1 bán kính 40. | Đều theo diện tích, không dồn về tâm. |
+| 31 | Cửa sổ 1280×720 và vsync với bản web | Cửa sổ Chrome/Edge `--window-size=1280,720` ở chế độ app; canvas cố định đúng 1280×720. Tắt vsync bằng `--disable-gpu-vsync --disable-frame-rate-limit` (trang web không tự tắt được). | Ticket cho phép ghi rõ trong README. |
+| 32 | `peak_mem_mb` bản web | `null`: trang không đọc được RSS của các tiến trình trình duyệt; JS heap không phải RSS. | Ticket cho phép null kèm giải thích. |
+| 33 | `load_ms` | Từ lúc `bin/bench.js` bắt đầu tới khi trang báo đã vẽ khung hình đầu tiên của cảnh bench (gồm cả khởi động trình duyệt). | Đúng định nghĩa "từ lúc tiến trình bắt đầu". |
+| 34 | Soak "Đêm thứ i dùng seed 7 + i" | i đếm từ 0: Đêm đầu dùng seed 7 = `--seed`. | Để `--seed` là seed của Đêm đầu tiên. |
+| 35 | Đo RSS soak | Gọi GC trước mỗi lần đo; chạy với `--max-semi-space-size=1`. Đã kiểm `heapUsed` sau GC phẳng ~5.3 MB qua 400 Đêm, tức không rò rỉ; phần RSS tăng là heap V8 dự trữ. | Số đo phản ánh rò rỉ thật thay vì rác chưa thu. |
+| 36 | Tên bảng xếp hạng tiếng Việt (điểm cộng) | Chấp nhận chữ Latin có dấu (chuẩn hoá NFC), số, `_`; 3–12 **ký tự** (không phải byte). Chữ ngoài hệ Latin bị từ chối. | Bắt buộc ASCII vẫn đạt; mở rộng an toàn cho tiếng Việt. |
+| 37 | Bảng xếp hạng "lưu trên đĩa cục bộ" | File `data/leaderboard.json` do `bin/serve.js` ghi (ghi tạm rồi đổi tên cho an toàn); thư mục `data/` không commit. | Còn nguyên sau khi tắt/mở game; không đẩy dữ liệu thử lên repo. |
+| 38 | Cây/đá (sáng tạo) | Vật cản tròn chỉ chặn Mây (không chặn Bóng Mực/Gió Lạc); chặn khi Mây cùng tầng (chênh cao < 2 m), cú nhảy chỉ cao ~1.2 m nên không nhảy qua được; Mây đi trên sàn tầng 1 Đêm 3 (y = 3) thì không bị cây ở tầng 0 chặn. Chỉ bật ở bản chơi. | Ticket: phần sáng tạo không được đổi headless và phải tắt trong bench/soak. |
+
 ## Quy ước output chưa được contract chốt chính xác
 
 Bản tóm tắt PRD nói "mỗi event có cấu trúc `data` riêng" nhưng không liệt kê từng trường. Đã chọn schema rõ ràng, nhất quán (xem [README](../../README.md) mục headless). Nếu bản contract chính thức khác, chỉ cần chỉnh khâu tạo `data` trong [`src/core/sim.js`](../../src/core/sim.js) và `headlessRun.js` — lõi mô phỏng không đổi.

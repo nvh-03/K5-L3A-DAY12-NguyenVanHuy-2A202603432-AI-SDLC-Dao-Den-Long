@@ -1,4 +1,4 @@
-// (1) Bộ kiểm tra tuân thủ Test Contract v1.2: đọc JSONL đầu ra và kiểm mọi dòng
+// (1) Bộ kiểm tra tuân thủ Test Contract v1.3 (đầu ra headless giữ nguyên v1.2): đọc JSONL đầu ra và kiểm mọi dòng
 // đúng schema/nhịp/kiểu, trên nhiều seed x 3 Đêm x chạy dài; đối chiếu game.contract.json.
 // Chạy độc lập: node tests/contract-check.js   (exit !=0 nếu có lỗi)
 import fs from 'node:fs';
@@ -148,7 +148,11 @@ export function runContractChecks() {
   const decl = JSON.parse(fs.readFileSync(new URL('../game.contract.json', import.meta.url), 'utf8'));
   const want = { fuel_max: 100, fuel_decay_per_s: 1.0, fuel_per_mote: 10, relight_cost: 5, win_ratio: 0.6, drain_per_s: 5, low_fuel_threshold: 30, capacity_max: 20, night1_duration_s: 240, night2_duration_s: 270, night3_duration_s: 300 };
   const declErr = [];
-  if (decl.contract_version !== '1.2') declErr.push(`contract_version = ${decl.contract_version}`);
+  if (decl.contract_version !== '1.3') declErr.push(`contract_version = ${decl.contract_version}`);
+  for (const k of ['run_cmd', 'headless_cmd', 'bench_cmd', 'soak_cmd']) {
+    const script = /^node(?: --\S+)* (\S+)$/.exec(decl[k] || '')?.[1];
+    if (!script || !fs.existsSync(new URL('../' + script, import.meta.url))) declErr.push(`${k} không trỏ tới script có thật: ${decl[k]}`);
+  }
   for (const [k, v] of Object.entries(want)) {
     if (decl.tuning[k] !== v) declErr.push(`tuning.${k} = ${decl.tuning[k]} (cần ${v})`);
     if (TUNING[k] !== v) declErr.push(`config TUNING.${k} = ${TUNING[k]} (cần ${v})`);
@@ -159,7 +163,7 @@ export function runContractChecks() {
 
 function isMain() { try { return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]; } catch { return false; } }
 if (isMain()) {
-  console.log('(1) Kiểm tra tuân thủ Contract v1.2');
+  console.log('(1) Kiểm tra tuân thủ Contract v1.3');
   const { runs, bad, problems } = runContractChecks();
   for (const p of problems) console.error('  ✗ ' + p);
   console.log(`  ${runs} lần chạy, ${bad} có lỗi`);

@@ -23,6 +23,10 @@ Thumbs.db
 
 # File lớn tạm (demo.mp4 nên đính kèm Release thay vì commit)
 *.log
+docs/demo/*.mp4
+
+# Dữ liệu chạy cục bộ (bảng xếp hạng do server ghi)
+data/
 
 # Văn bản ticket/PRD dán tay (tham khảo local, không thuộc deliverable)
 /phase 1.md

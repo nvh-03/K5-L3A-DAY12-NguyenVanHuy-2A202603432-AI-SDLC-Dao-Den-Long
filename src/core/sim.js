@@ -11,6 +11,8 @@ const FU = 60;
 const fuelOut = (u) => Math.round(u / 6) / 10;
 const DRAIN_RANGE = 2.0;  // m XZ, Ticket-03
 const WANDER_SPEED = 1.5; // m/s, giả định từ Phase 1
+const PLAYER_RADIUS = 0.45;  // m, va chạm với cây/đá
+const OBSTACLE_HEIGHT = 2.0; // m, cao hơn thế thì nhảy qua được
 const r3 = (x) => Math.round(x * 1000) / 1000;
 const r3v = (v) => [r3(v[0]), r3(v[1]), r3(v[2])];
 const distXZ = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
@@ -22,13 +24,15 @@ export const DEFAULT_INPUT = {
 };
 
 export class Simulation {
-  constructor({ seed = 1, night = 1, scenario = null } = {}) {
+  constructor({ seed = 1, night = 1, scenario = null, creative = false } = {}) {
     this.tuning = TUNING;
     this.score = SCORE;
     this.seed = seed >>> 0;
     this.rng = makeRng(seed);
     this.night = night;
     this.map = buildNight(night);
+    // Cây/đá (sáng tạo): chỉ bật ở bản web (creative) hoặc khi scenario khai báo, nên headless chuẩn không đổi.
+    this.obstacles = (scenario && Array.isArray(scenario.obstacles)) ? scenario.obstacles : (creative ? (this.map.obstacles || []) : []);
 
     this.tick = 0;        // luôn tăng mỗi step
     this.simTick = 0;     // đứng yên khi tạm dừng
@@ -347,7 +351,17 @@ export class Simulation {
     }
 
     // áp vận tốc ngang (chặn nếu đụng trụ tháp hoặc đi ra biển -> vẫn cho ra để rơi)
-    const nx = p.pos[0] + vx * DT, nz = p.pos[2] + vz * DT;
+    let nx = p.pos[0] + vx * DT, nz = p.pos[2] + vz * DT;
+    // Vật cản tròn: đẩy Mây ra mép và bỏ thành phần vận tốc hướng vào trong (trượt dọc thân cây/đá).
+    for (const o of this.obstacles) {
+      if (Math.abs(p.pos[1] - o.pos[1]) >= OBSTACLE_HEIGHT) continue;
+      const dx = nx - o.pos[0], dz = nz - o.pos[2], d = Math.hypot(dx, dz), min = o.radius + PLAYER_RADIUS;
+      if (d >= min) continue;
+      const ux = d > 1e-6 ? dx / d : 1, uz = d > 1e-6 ? dz / d : 0;
+      nx = o.pos[0] + ux * min; nz = o.pos[2] + uz * min;
+      const vn = vx * ux + vz * uz;
+      if (vn < 0) { vx -= vn * ux; vz -= vn * uz; }
+    }
     const cs = candidateSurfaces(this.night, nx, nz);
     if (cs === 'tower') { vx = 0; vz = 0; } // đụng trụ tháp: chặn
     else { p.pos[0] = nx; p.pos[2] = nz; }
@@ -550,28 +564,34 @@ export class Simulation {
       if (s.state === 'chase') {
         const dx = p.pos[0] - s.pos[0], dz = p.pos[2] - s.pos[2]; const dd = Math.hypot(dx, dz) || 1;
         this._moveShadePos(s, (dx / dd) * this.shadeSpeed * DT, (dz / dd) * this.shadeSpeed * DT);
-      } else {
-        // wander: ưu tiên đèn sáng có fuel < 30 gần nhất; không có thì về đèn tắt gần nhất; không có nữa thì trôi.
-        const weak = this._nearestLantern(s.pos, (L) => L.lit && L.fuelU < this.lowFuelU);
-        s.target = weak ? weak.id : null;
-        if (weak && distXZ(s.pos, weak.pos) <= DRAIN_RANGE) { s.state = 'drain'; s.drainTicks = 0; continue; }
-        const goal = weak || this._nearestLantern(s.pos, (L) => !L.lit);
-        const gd = goal ? distXZ(s.pos, goal.pos) : 0;
-        if (goal && gd > (weak ? 0 : 1)) {
-          const sp = weak ? this.shadeSpeed : WANDER_SPEED;
-          const step = Math.min(sp * DT, weak ? gd : gd - 1);
-          this._moveShadePos(s, ((goal.pos[0] - s.pos[0]) / gd) * step, ((goal.pos[2] - s.pos[2]) / gd) * step);
-        } else if (!goal) {
-          this._moveShadePos(s, s.wanderDir[0] * WANDER_SPEED * DT, s.wanderDir[1] * WANDER_SPEED * DT);
-        }
-      }
-
-      // chặn ở mép vùng an toàn của đèn sáng có fuel >= 30
-      for (const L of this.lanterns) {
-        if (!L.lit || L.fuelU < this.lowFuelU) continue;
-        const dd = distXZ(s.pos, L.pos);
-        if (dd < t.safe_radius) { const ax = s.pos[0] - L.pos[0], az = s.pos[2] - L.pos[2]; const an = Math.hypot(ax, az) || 1; s.pos[0] = L.pos[0] + (ax / an) * t.safe_radius; s.pos[2] = L.pos[2] + (az / an) * t.safe_radius; }
-      }
+      } else if (this._wanderStep(s)) continue;
+      this._blockSafeZones(s);
+    }
+  }
+  // Một bước wander; trả true nếu vừa chuyển sang drain. Cảnh benchmark dùng lại hàm này.
+  _wanderStep(s) {
+    // Ưu tiên đèn sáng có fuel < 30 gần nhất; không có thì về đèn tắt gần nhất; không có nữa thì trôi.
+    const weak = this._nearestLantern(s.pos, (L) => L.lit && L.fuelU < this.lowFuelU);
+    s.target = weak ? weak.id : null;
+    if (weak && distXZ(s.pos, weak.pos) <= DRAIN_RANGE) { s.state = 'drain'; s.drainTicks = 0; return true; }
+    const goal = weak || this._nearestLantern(s.pos, (L) => !L.lit);
+    const gd = goal ? distXZ(s.pos, goal.pos) : 0;
+    if (goal && gd > (weak ? 0 : 1)) {
+      const sp = weak ? this.shadeSpeed : WANDER_SPEED;
+      const step = Math.min(sp * DT, weak ? gd : gd - 1);
+      this._moveShadePos(s, ((goal.pos[0] - s.pos[0]) / gd) * step, ((goal.pos[2] - s.pos[2]) / gd) * step);
+    } else if (!goal) {
+      this._moveShadePos(s, s.wanderDir[0] * WANDER_SPEED * DT, s.wanderDir[1] * WANDER_SPEED * DT);
+    }
+    return false;
+  }
+  // Chặn ở mép vùng an toàn của đèn sáng có fuel >= 30.
+  _blockSafeZones(s) {
+    const t = this.tuning;
+    for (const L of this.lanterns) {
+      if (!L.lit || L.fuelU < this.lowFuelU) continue;
+      const dd = distXZ(s.pos, L.pos);
+      if (dd < t.safe_radius) { const ax = s.pos[0] - L.pos[0], az = s.pos[2] - L.pos[2]; const an = Math.hypot(ax, az) || 1; s.pos[0] = L.pos[0] + (ax / an) * t.safe_radius; s.pos[2] = L.pos[2] + (az / an) * t.safe_radius; }
     }
   }
   _nearestLantern(pos, pred) {

@@ -130,6 +130,19 @@ export function buildNight(n) {
       drifters: false,
       wind: false,
       spawnPos: [0, 0, 0],
+      obstacles: [
+        { type: 'tree', pos: [8, 0, 16], radius: 0.8 },
+        { type: 'tree', pos: [-10, 0, 14], radius: 0.8 },
+        { type: 'tree', pos: [18, 0, -6], radius: 0.8 },
+        { type: 'tree', pos: [-18, 0, -6], radius: 0.8 },
+        { type: 'tree', pos: [-6, 0, -14], radius: 0.7 },
+        { type: 'tree', pos: [7, 0, -13], radius: 0.7 },
+        { type: 'rock', pos: [-14, 0, 8], radius: 0.9 },
+        { type: 'rock', pos: [14, 0, 9], radius: 0.9 },
+        { type: 'rock', pos: [0, 0, -8], radius: 0.8 },
+        { type: 'rock', pos: [-8, 0, 29], radius: 0.9 },
+        { type: 'rock', pos: [9, 0, 28], radius: 0.9 },
+      ],
     };
   }
   if (n === 2) {
@@ -155,6 +168,18 @@ export function buildNight(n) {
         { pos: [20, 0, 18], target: [70, 0, 0], vy: 14, vh: 24 },
         { pos: [50, 0, -18], target: [0, 0, 0], vy: 14, vh: 24 },
       ],
+      obstacles: [
+        { type: 'tree', pos: [-10, 0, 10], radius: 0.8 },
+        { type: 'tree', pos: [-10, 0, -12], radius: 0.8 },
+        { type: 'tree', pos: [8, 0, -16], radius: 0.8 },
+        { type: 'rock', pos: [-7, 0, -3], radius: 0.9 },
+        { type: 'rock', pos: [10, 0, 7], radius: 0.9 },
+        { type: 'tree', pos: [60, 0, 12], radius: 0.8 },
+        { type: 'tree', pos: [80, 0, 10], radius: 0.8 },
+        { type: 'tree', pos: [72, 0, -15], radius: 0.8 },
+        { type: 'rock', pos: [63, 0, -8], radius: 0.9 },
+        { type: 'rock', pos: [78, 0, -4], radius: 0.9 },
+      ],
     };
   }
   // Đêm 3
@@ -179,5 +204,14 @@ export function buildNight(n) {
     wind: true,
     spawnPos: [0, 0, 0],
     pads: [{ pos: [0, 3, 13], target: null, dir: [0, 0, -1], vy: 12, vh: 8 }],
+    obstacles: [
+      { type: 'tree', pos: [26, 0, 18], radius: 0.8 },
+      { type: 'tree', pos: [-26, 0, 18], radius: 0.8 },
+      { type: 'tree', pos: [14, 0, -22], radius: 0.8 },
+      { type: 'tree', pos: [-14, 0, -22], radius: 0.8 },
+      { type: 'rock', pos: [28, 0, -6], radius: 0.9 },
+      { type: 'rock', pos: [-28, 0, -6], radius: 0.9 },
+      { type: 'rock', pos: [0, 0, -22], radius: 0.9 },
+    ],
   };
 }

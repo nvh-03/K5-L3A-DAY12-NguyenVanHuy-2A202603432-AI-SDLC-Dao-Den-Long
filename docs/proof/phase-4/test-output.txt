@@ -1,0 +1,178 @@
+
+===== run.js =====
+Số chuẩn & snapshot v1.2
+  ✓ night_start ở tick 0
+  ✓ [T03] Đêm 1 time_left = 240
+  ✓ night=1 trong snapshot
+  ✓ 5 đèn Đêm 1
+  ✓ player có vel/grounded/invuln/dash_cd_s/pulse_cd_s/charm_s
+  ✓ có wind/drifters/charms/motes
+  ✓ 20 đom đóm lúc đầu
+  ✓ v1.2: player.capacity = 10 lúc đầu
+  ✓ v1.2: đèn tắt có fuel 0, ever_lit false, relit_count 0
+  ✓ [T03] Đêm 2 time_left = 270, 6 đèn
+  ✓ [T03] Đêm 3 time_left = 300, 7 đèn
+Lướt (dash)
+  ✓ có event dash
+  ✓ vel ~ 14 m/s khi lướt
+  ✓ dash_cd_s = 1.5 sau khi lướt
+Tỏa Sáng (pulse)
+  ✓ có event pulse với hit S1
+  ✓ S1 state stunned
+  ✓ carried = 0 sau pulse
+  ✓ pulse_cd_s = 3.0
+  ✓ trúng Bóng không drain: +5
+Bóng Mực gây hit & recoil
+  ✓ player_hit reason shade
+  ✓ flames 3 -> 2
+  ✓ rơi 2 đom đóm
+  ✓ bóng chuyển recoil
+  ✓ có đom đóm rơi (kind dropped)
+Rơi khỏi đảo & hồi sinh
+  ✓ có player_hit reason fall
+  ✓ fall: mất toàn bộ đom đóm (lost=5)
+  ✓ fall: -1 Ngọn Lửa
+Gió Lạc cướp / thả
+  ✓ có drifter_steal, cướp 3, còn 3
+  ✓ pulse trúng Gió Lạc đang chạy -> thả lại 3
+Bùa Gió (charm)
+  ✓ có charm_picked C1
+  ✓ charm_s = 10
+Tạm dừng (pause)
+  ✓ có paused & resumed
+  ✓ snapshot state paused
+  ✓ sim_tick đứng yên khi pause
+Bục nhảy (Đêm 2)
+  ✓ bục bắn lên (vel Y > 13) và rời đất
+Gió mạnh Đêm 3
+  ✓ có snapshot wind.active = true
+Tất định & hiệu năng
+  ✓ cùng seed -> JSONL giống hệt
+  ✓ [T03] một Đêm dài nhất (18000 tick) < 10 s
+Contract: lỗi & làm tròn
+  ✓ tick không tăng -> code 2
+  ✓ toạ độ làm tròn 3 số
+[T03] Nạp từng phần vẫn giữ
+  ✓ deposit amount 4, deposited 4
+  ✓ chưa sáng, +5/đom đóm = 20 điểm
+[T03] Thắp lần đầu (thay test "Nạp đèn & thắng")
+  ✓ lantern_lit L1 relight=false
+  ✓ 5/5 đèn sáng
+  ✓ KHÔNG thắng sớm: không game_over, state playing
+  ✓ điểm = 10*5 + 100 = 150
+  ✓ đèn vừa thắp fuel = 100 rồi hao 1/s: 59 tick -> 99
+[T03] Thắp lại
+  ✓ chỉ cần 5 đom đóm, lantern_lit relight=true
+  ✓ relit_count 1, ever_lit, fuel 100
+  ✓ điểm = 5*5 + 40 = 65
+[T03] Châm dầu
+  ✓ refuel used = 6, fuel 100
+  ✓ trừ 6 đom đóm, +30 điểm, không có lantern_lit
+[T03] Hết dầu
+  ✓ lantern_out L1 đúng tick 30
+  ✓ tắt: lit false, fuel 0, deposited 0, ever_lit true
+  ✓ fuel xuất 1 chữ số thập phân
+[T03] Bóng Mực hút dầu (drain)
+  ✓ wander -> drain khi cách đèn yếu <= 2 m
+  ✓ Bóng đứng yên khi drain
+  ✓ fuel_drain mỗi 60 tick (tick 61, 121)
+  ✓ fuel_drain.fuel = fuel còn lại (14)
+  ✓ 2 Bóng cộng dồn: 20 - 60*(10+1)/60 = 9
+[T03] Vùng an toàn theo dầu
+  ✓ fuel < 30: không có vùng an toàn (Bóng ở 3 m không bị đẩy)
+  ✓ fuel 30.1 (>= 30): bị chặn ở mép 6 m
+[T03] Thoát drain
+  ✓ Mây trong 6 m -> chase
+  ✓ châm lên >= 30 -> Bóng bị đẩy ra mép 6 m
+  ✓ không gây sát thương trong lúc bị đẩy
+  ✓ rời drain
+  ✓ Tỏa Sáng trúng Bóng đang drain: stunned, +15
+[T03] Luật thắng mới
+  ✓ 3/5 sáng ở bình minh -> dawn_survived, won
+  ✓ thưởng: (50+99)*2 + (50+49) + 3*50 = 547
+  ✓ 2/5 sáng -> thua dawn, không thưởng
+  ✓ tick bình minh mà hết Ngọn Lửa -> no_flames trước
+  ✓ Đêm 1: cần 3 đèn
+  ✓ Đêm 2: cần 4 đèn
+  ✓ Đêm 3: cần 5 đèn
+[T03] Sức chứa tăng dần
+  ✓ thắp 1 đèn -> capacity 12
+  ✓ trần 20: successful_lights 9 -> capacity 20, nhặt tối đa tới 20
+  ✓ đèn đặt sẵn bằng scenario không tính vào sức chứa
+
+Kết quả: 77 đạt, 0 trượt
+
+===== contract-check.js =====
+(1) Kiểm tra tuân thủ Contract v1.3
+  50 lần chạy, 0 có lỗi
+
+Contract check: ĐẠT
+
+===== invariants.js =====
+(2) Fuzz input + bất biến + tất định (3 Đêm)
+  60 lần chạy, 0 có lỗi; độ phủ nhánh dầu: {"refuel":15,"lantern_out":21,"fuel_drain":46,"relight":15}
+
+Invariants: ĐẠT
+
+===== platform.js =====
+Bảng xếp hạng: tên & mục
+  ✓ nhận tên ASCII [A-Za-z0-9_] 3–12
+  ✓ từ chối tên ngắn/dài/ký tự lạ
+  ✓ điểm cộng: nhận tiếng Việt có dấu (NFC, đếm theo ký tự)
+  ✓ từ chối chữ không phải Latin
+  ✓ achieved_at phải ISO 8601 có múi giờ
+  ✓ nights_won 0–3, score/seed nguyên
+  ✓ giữ top 10
+  ✓ điểm giảm dần; bằng điểm thì ai đạt trước đứng trên
+  ✓ so thời điểm theo múi giờ, không theo chuỗi
+Bảng xếp hạng: lưu đĩa, API, lệnh export
+  ✓ chưa có file -> rỗng
+  ✓ lưu xuống đĩa, đọc lại đúng thứ tự
+  ✓ --export-leaderboard ra {"entries":[...]} đúng thứ tự
+  ✓ POST hợp lệ -> 201
+  ✓ POST tên sai -> 400
+  ✓ GET trả mục vừa lưu
+  ✓ trang chính phục vụ được
+  ✓ không lộ file ngoài danh sách (data/, package.json, ../)
+Cài đặt: đổi phím, trùng phím, khôi phục
+  ✓ mặc định khi chưa lưu
+  ✓ có đủ hành động: 4 hướng, nhảy, lướt, tương tác, tỏa sáng, tạm dừng
+  ✓ đổi phím được
+  ✓ phát hiện trùng phím và báo tên hành động
+  ✓ được lưu và đọc lại
+  ✓ dữ liệu lưu bị trùng phím -> về mặc định
+  ✓ dữ liệu hỏng -> về mặc định
+Số đo bench (công thức Ticket-04 §1)
+  ✓ frames = N
+  ✓ avg_fps = 1000·N/Σdt
+  ✓ p1_low_fps = 1000 / trung bình k=ceil(1%N) dt lớn nhất
+  ✓ frame_ms_p95 = phân vị 95
+  ✓ k = ceil(0.01·N) với N=250 -> 3
+Cảnh benchmark chuẩn
+  ✓ đúng 200 Bóng Mực wander
+  ✓ đúng 100 đom đóm (vượt trần gameplay)
+  ✓ L1–L3 sáng fuel 100, đèn khác tắt
+  ✓ rải trên đảo Đêm 1 (r < 40)
+  ✓ Mây đứng tại (0,0,0), không có vật cản sáng tạo
+  ✓ 30 s: vẫn 200 wander, 100 đom đóm, không hao dầu, không kết thúc
+  ✓ Bóng Mực có di chuyển
+  ✓ cùng seed -> cùng cảnh (tất định)
+  ✓ camera bắt đầu (30,15,0)
+  ✓ camera ngược chiều kim đồng hồ nhìn từ trên: 1/4 vòng (3.75 s) ở (0,15,-30)
+  ✓ 15 s một vòng
+Soak
+  ✓ 3 Đêm, 0 crash, đủ kết quả
+  ✓ xoay vòng Đêm 1→2→3, seed 7+i
+  ✓ mỗi Đêm dừng khi kết thúc hoặc hết thời lượng
+  ✓ đổi hướng đúng mỗi 30 tick
+  ✓ xác suất ~5% nhảy, 3% lướt, 2% tỏa sáng, 10% tương tác
+Vật cản (cây, đá): không đi xuyên
+  ✓ đi thẳng vào đá: dừng ở mép (bán kính đá + 0.45)
+  ✓ đi lệch: trượt qua mép rồi đi tiếp, không xuyên
+  ✓ dash vào đá cũng không xuyên
+  ✓ bản web (creative) có cây/đá ở cả 3 Đêm
+  ✓ headless chuẩn KHÔNG có vật cản (đầu ra không đổi)
+
+Kết quả: 50 đạt, 0 trượt
+
+>>> TẤT CẢ ĐẠT

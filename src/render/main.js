@@ -1,242 +1,166 @@
-// Render 3D (Three.js) dùng lại lõi Simulation — cùng logic với headless.
-// Hỗ trợ chuỗi 3 Đêm, dash, pause, Gió Lạc, Bùa Gió, HUD đầy đủ. Bảng màu chuẩn.
 import * as THREE from 'three';
 import { Simulation } from '../core/sim.js';
-import { TUNING, buildNight, TICK_RATE } from '../core/config.js';
+import { TICK_RATE, TUNING } from '../core/config.js';
+import { GameView } from './view.js';
+import { ACTIONS, DEFAULT_KEYS, rebind, loadSettings } from '../platform/settings.js';
 
-const DT = 1 / TICK_RATE;
-const C = { sky: 0x0E1430, grass: 0x2F5D50, wood: 0x6B4A2F, lanternOn: 0xFFB347, lanternCore: 0xFFE9B0, lanternOff: 0x5B5F6E,
-  moteCore: 0xFFF6C2, shade: 0x120A1A, shadeEdge: 0x7A3CFF, shadeEdgeCB: 0x00B3FF, shadeStun: 0x3A3450, maya: 0xE8E2D0, scarf: 0xC8102E,
-  drifter: 0x8FA3B8, charm: 0xC8102E, sea: 0x12384A, fuel: 0xFFB347, fuelLow: 0xFF5A5F, fuelLowCB: 0xFFFFFF, tear: 0x0B0710 };
-const LOW_FUEL = TUNING.low_fuel_threshold;
+const $ = id => document.getElementById(id), view = new GameView($('app'));
+let storage; try { storage = localStorage; } catch { storage = { getItem: () => null, setItem: () => { throw new Error('Trình duyệt chặn lưu cài đặt'); } }; }
+let settings = loadSettings(storage), binding = null, mode = 'home', night = 1, seed = 42, totalScore = 0, nightsWon = 0;
+let sim = new Simulation({ seed, night, creative: true }), yaw = 0, acc = 0, last = 0, recentShade = null, resumeAfterDialog = false;
+let knownShades = new Set(), hitFx = 0;
+const keys = new Set(), DT = 1 / TICK_RATE;
+const names = ['', 'Đảo Bến', 'Đảo Cau', 'Đảo Chuông'];
+view.build(1, sim.obstacles); view.sync(sim, settings);
 
-// ---------- Bảng màu dễ phân biệt (lưu trong localStorage) ----------
-const CB_KEY = 'dao-den-long.colorblind';
-let colorBlind = false;
-try { colorBlind = localStorage.getItem(CB_KEY) === '1'; } catch { /* trình duyệt chặn storage: dùng mặc định */ }
-function setColorBlind(on) {
-  colorBlind = on;
-  document.body.classList.toggle('cb', on);
-  document.getElementById('opt-cb').checked = on;
-  try { localStorage.setItem(CB_KEY, on ? '1' : '0'); } catch { /* bỏ qua */ }
-  for (const [, g] of shadeMeshes) paintShade(g);
+function formatKey(k) {
+  if (!k) return '';
+  if (k.startsWith('Key')) return k.slice(3);
+  if (k.startsWith('Digit')) return k.slice(5);
+  if (k === 'ShiftLeft' || k === 'ShiftRight') return 'Shift';
+  if (k === 'ControlLeft' || k === 'ControlRight') return 'Ctrl';
+  if (k === 'AltLeft' || k === 'AltRight') return 'Alt';
+  if (k === 'Space') return 'Space';
+  if (k === 'Escape') return 'Esc';
+  return k;
 }
-const edgeColor = () => (colorBlind ? C.shadeEdgeCB : C.shadeEdge);
 
-const app = document.getElementById('app');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-app.appendChild(renderer.domElement);
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(C.sky);
-scene.fog = new THREE.FogExp2(C.sky, 0.008);
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
-const hemi = new THREE.HemisphereLight(0x3a3a66, 0x05040a, 0.5);
-scene.add(hemi);
-const ambient = new THREE.AmbientLight(0xffffff, 0.15);
-scene.add(ambient);
-const moon = new THREE.DirectionalLight(0x8899cc, 0.3); moon.position.set(30, 60, 20); scene.add(moon);
-
-let worldGroup = new THREE.Group(); scene.add(worldGroup);
-const playerMesh = makePlayer(); scene.add(playerMesh);
-const lanternMeshes = new Map(), moteMeshes = new Map(), shadeMeshes = new Map(), drifterMeshes = new Map(), charmMeshes = new Map();
-
-function disc(r, y, color, h = 1) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 48), new THREE.MeshStandardMaterial({ color, roughness: 0.95 })); m.position.y = y - h / 2; return m; }
-function makePlayer() {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 0.8, 4, 12), new THREE.MeshStandardMaterial({ color: C.maya, emissive: 0x3a2a10, roughness: 0.6 }));
-  body.position.y = 0.8; g.add(body);
-  const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.1, 8, 16), new THREE.MeshStandardMaterial({ color: C.scarf })); scarf.position.y = 1.0; scarf.rotation.x = Math.PI / 2; g.add(scarf);
-  const hat = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.5, 16), new THREE.MeshStandardMaterial({ color: 0xC9B48A, roughness: 0.8 })); hat.position.y = 1.55; g.add(hat);
-  const light = new THREE.PointLight(C.lanternOn, 2.2, 14, 1.6); light.position.set(0, 1.4, 0.5); g.add(light);
-  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), new THREE.MeshBasicMaterial({ color: C.lanternCore })); bulb.position.copy(light.position); g.add(bulb);
-  return g;
+function applySettings() {
+  document.documentElement.classList.toggle('large-text', settings.largeText); document.body.classList.toggle('colorblind', settings.colorblind);
+  $('reduced-motion').checked = settings.reducedMotion; $('large-text').checked = settings.largeText; $('colorblind').checked = settings.colorblind;
+  try { storage.setItem('dao-den-long.settings', JSON.stringify(settings)); } catch (e) { $('binding-status').textContent = e.message; }
+  const k = settings.keys;
+  const moveStr = `${formatKey(k.forward)}${formatKey(k.left)}${formatKey(k.backward)}${formatKey(k.right)}`;
+  $('help').textContent = `${moveStr} di chuyển · ${formatKey(k.jump)} nhảy · ${formatKey(k.dash)} lướt · ${formatKey(k.interact)} thắp/nạp · ${formatKey(k.pulse)} tỏa · ${formatKey(k.pause)} menu`;
 }
-function makeLantern() {
-  const g = new THREE.Group();
-  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 2.4, 10), new THREE.MeshStandardMaterial({ color: C.wood })); post.position.y = 1.2; g.add(post);
-  const globe = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshStandardMaterial({ color: C.lanternOff, emissive: 0x120a18, roughness: 0.5 })); globe.position.y = 2.6; g.add(globe);
-  // Vết rách trên giấy: chỉ hiện khi đèn tắt, để phân biệt tắt/sáng không cần màu.
-  const tear = new THREE.Group();
-  for (const [x, rz] of [[-0.12, 0.5], [0.1, -0.4]]) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.5, 0.06), new THREE.MeshBasicMaterial({ color: C.tear })); t.position.set(x, 0, 0.47); t.rotation.z = rz; tear.add(t); }
-  globe.add(tear);
-  const light = new THREE.PointLight(C.lanternOn, 0, 18, 1.6); light.position.y = 2.6; g.add(light);
-  // Thanh dầu nổi trên đèn đang sáng, luôn quay về phía camera.
-  const bar = new THREE.Group(); bar.position.y = 3.5;
-  const bg = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.18), new THREE.MeshBasicMaterial({ color: 0x1a1f36, transparent: true, opacity: 0.85, depthWrite: false }));
-  const fill = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.1), new THREE.MeshBasicMaterial({ color: C.fuel, transparent: true, depthWrite: false }));
-  fill.position.z = 0.01; bar.add(bg); bar.add(fill); g.add(bar);
-  g.userData = { globe, light, tear, bar, fill }; return g;
-}
-function makeMote(kind) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), new THREE.MeshBasicMaterial({ color: kind === 'dropped' ? 0xFFE58A : C.moteCore })); m.add(new THREE.PointLight(0xFFE58A, 0.5, 3, 2)); return m; }
-function makeShade() {
-  const g = new THREE.Group();
-  const b = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 12), new THREE.MeshStandardMaterial({ color: C.shade, emissive: C.shadeEdge, emissiveIntensity: 0.4, roughness: 0.4, transparent: true, opacity: 0.9 })); b.position.y = 0.9; g.add(b);
-  const eyes = [-0.22, 0.22].map((x) => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: C.shadeEdge })); e.position.set(x, 1.05, 0.62); g.add(e); return e; });
-  g.userData = { b, eyes }; paintShade(g); return g;
-}
-function paintShade(g) { const c = edgeColor(); g.userData.b.material.emissive.setHex(c); for (const e of g.userData.eyes) e.material.color.setHex(c); }
-function makeDrifter() { const m = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 1.6), new THREE.MeshStandardMaterial({ color: C.drifter, emissive: 0x223344 })); m.position.y = 1.2; return m; }
-function makeCharm() { const m = new THREE.Mesh(new THREE.TetrahedronGeometry(0.4), new THREE.MeshStandardMaterial({ color: C.charm, emissive: 0x550000 })); m.add(new THREE.PointLight(0xF2C14E, 0.8, 4, 2)); m.position.y = 0.6; return m; }
-
-function buildWorldMeshes(night) {
-  worldGroup.clear();
-  const add = (m) => worldGroup.add(m);
-  if (night === 1) { add(disc(40, 0, C.grass)); }
-  else if (night === 2) {
-    const a = disc(28, 0, C.grass); const b = disc(28, 0, C.grass); b.position.x = 70; add(a); add(b);
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(18, 0.4, 4), new THREE.MeshStandardMaterial({ color: C.wood })); bridge.position.set(35, -0.2, 0); add(bridge);
-  } else {
-    add(disc(45, 0, C.grass));
-    const ring = new THREE.Mesh(new THREE.RingGeometry(12, 24, 48, 1, 0, Math.PI), new THREE.MeshStandardMaterial({ color: 0x27503f, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.y = 3; add(ring);
-    add(disc(8, 6, 0x2a4a3f, 0.3));
-    const tower = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 8, 16), new THREE.MeshStandardMaterial({ color: C.wood })); tower.position.y = 10; add(tower);
+function bindings() {
+  $('bindings').replaceChildren();
+  for (const [action, label] of Object.entries(ACTIONS)) {
+    const btn = document.createElement('button'); btn.textContent = `${label}: ${formatKey(settings.keys[action])}`;
+    btn.addEventListener('click', () => { binding = action; $('binding-status').textContent = `Nhấn phím mới cho “${label}”…`; }); $('bindings').append(btn);
   }
 }
-
-// ---------- Input ----------
-const held = { move: [0, 0], cam_yaw_deg: 0, jump: false, interact: false, pulse: false, dash: false, pause: false };
-const keys = {}; let camYaw = 0;
-addEventListener('keydown', (e) => {
-  keys[e.code] = true;
-  if (['ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
-  if (e.code === 'KeyC' && !e.repeat) setColorBlind(!colorBlind);
+addEventListener('keydown', e => {
+  if (binding) {
+    e.preventDefault();
+    try { settings.keys = rebind(settings.keys, binding, e.code); $('binding-status').textContent = 'Đã lưu phím.'; binding = null; applySettings(); bindings(); }
+    catch (error) { $('binding-status').textContent = error.message; }
+    return;
+  }
+  if (e.target.matches('input') || document.querySelector('dialog[open]') || mode !== 'play') return;
+  if (Object.values(settings.keys).includes(e.code)) e.preventDefault();
+  keys.add(e.code);
 });
-document.getElementById('opt-cb').addEventListener('change', (e) => setColorBlind(e.target.checked));
-addEventListener('keyup', (e) => { keys[e.code] = false; });
+addEventListener('keyup', e => keys.delete(e.code)); addEventListener('blur', () => keys.clear());
 function readInput() {
-  if (keys['ArrowLeft']) camYaw += 1.8 * DT; if (keys['ArrowRight']) camYaw -= 1.8 * DT;
-  let x = 0, z = 0; if (keys['KeyW']) z += 1; if (keys['KeyS']) z -= 1; if (keys['KeyD']) x += 1; if (keys['KeyA']) x -= 1;
-  held.move = [x, z]; held.cam_yaw_deg = (camYaw * 180) / Math.PI;
-  held.jump = !!keys['Space']; held.interact = !!keys['KeyE']; held.pulse = !!keys['KeyQ'];
-  held.dash = !!(keys['ShiftLeft'] || keys['ShiftRight']); held.pause = !!(keys['Escape'] || keys['KeyP']);
+  const on = a => keys.has(settings.keys[a]);
+  if (on('cameraLeft')) yaw += 1.8 * DT; if (on('cameraRight')) yaw -= 1.8 * DT;
+  return { move: [Number(on('right')) - Number(on('left')), Number(on('forward')) - Number(on('backward'))], cam_yaw_deg: yaw * 180 / Math.PI, jump: on('jump'), dash: on('dash'), interact: on('interact'), pulse: on('pulse'), pause: on('pause') };
 }
-
-// ---------- State máy chuỗi Đêm ----------
-let sim, night = 1, totalScore = 0, mode = 'intro', acc = 0, lastT = 0;
-const NIGHT_NAMES = { 1: 'Đảo Bến', 2: 'Đảo Cau', 3: 'Đảo Chuông' };
-const ONGDANG = { 1: '“Thắp lại ánh đèn đầu tiên, Mây nhé.”', 2: '“Hai đảo nối cầu — cẩn thận Gió Lạc cướp đèn.”', 3: '“Đêm cuối. Gió lớn trên Đảo Chuông, giữ vững ngọn lửa.”' };
-
+function pauseToggle() { sim.step({ pause: true }); sim.step({ pause: false }); keys.clear(); }
+function openDialog(id) {
+  resumeAfterDialog = mode === 'play' && !sim.paused;
+  if (resumeAfterDialog) pauseToggle();
+  keys.clear(); $(id).showModal();
+}
+for (const id of ['settings-dialog', 'leaderboard-dialog']) $(id).addEventListener('close', () => { binding = null; keys.clear(); if (resumeAfterDialog && sim.paused) pauseToggle(); resumeAfterDialog = false; });
+$('settings-button').onclick = () => { bindings(); openDialog('settings-dialog'); };
+$('close-settings').onclick = () => $('settings-dialog').close();
+$('restore').onclick = () => { settings = { keys: { ...DEFAULT_KEYS }, reducedMotion: false, largeText: false, colorblind: false }; binding = null; $('binding-status').textContent = 'Đã khôi phục mặc định.'; applySettings(); bindings(); };
+for (const [id, key] of [['reduced-motion','reducedMotion'],['large-text','largeText'],['colorblind','colorblind']]) $(id).onchange = e => { settings[key] = e.target.checked; applySettings(); };
+$('leaderboard-button').onclick = async () => {
+  openDialog('leaderboard-dialog'); $('leaderboard-body').replaceChildren(); $('leaderboard-status').textContent = 'Đang đọc…';
+  try {
+    const response = await fetch('/api/leaderboard'); if (!response.ok) throw new Error('Không đọc được bảng xếp hạng. Hãy chạy bằng npm run web.');
+    const { entries } = await response.json();
+    entries.forEach((e, i) => { const row = document.createElement('tr'); for (const value of [i + 1, e.name, e.score, e.nights_won + '/3', new Date(e.achieved_at).toLocaleString('vi-VN')]) { const td = document.createElement('td'); td.textContent = value; row.append(td); } $('leaderboard-body').append(row); });
+    $('leaderboard-status').textContent = entries.length ? 'Được lưu trên máy này.' : 'Chưa có hành trình nào. Hãy thắp ngọn đèn đầu tiên!';
+  } catch (e) { $('leaderboard-status').textContent = e.message; }
+};
+$('close-leaderboard').onclick = () => $('leaderboard-dialog').close();
+$('score-form').onsubmit = async e => {
+  e.preventDefault(); const button = $('score-form').querySelector('button'); button.disabled = true;
+  try {
+    const response = await fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: $('player-name').value, score: totalScore, nights_won: nightsWon, achieved_at: new Date().toISOString(), seed }) });
+    const data = await response.json(); if (!response.ok) throw new Error(data.error);
+    $('save-status').textContent = 'Đã lưu hành trình vào bảng xếp hạng.';
+  } catch (error) { $('save-status').textContent = error.message; button.disabled = false; }
+};
+function overlay(title, subtitle, button) { $('ov-title').textContent = title; $('ov-sub').textContent = subtitle; $('ov-btn').textContent = button; $('overlay').hidden = false; }
+function home() {
+  mode = 'home'; keys.clear(); $('score-form').hidden = true; $('seed-label').hidden = false; $('ov-score').textContent = ''; $('home-button').hidden = true;
+  overlay('Giữ một ngọn đèn. Đón cả bình minh.', 'Ba hòn đảo. Ba Đêm trong sương. Gom đom đóm, giữ dầu cho đèn và dẫn Mây đi qua bóng tối.', 'Bắt đầu hành trình');
+}
 function startNight(n) {
-  night = n; buildWorldMeshes(n);
-  sim = new Simulation({ seed: (Date.now() & 0x7fffffff) || 1, night: n });
-  for (const map of [lanternMeshes, moteMeshes, shadeMeshes, drifterMeshes, charmMeshes]) { for (const [, g] of map) scene.remove(g); map.clear(); }
-  camYaw = 0; acc = 0; mode = 'play'; document.getElementById('overlay').style.display = 'none'; sync();
-}
-function showIntro(n) {
-  mode = 'intro';
-  document.getElementById('ov-title').textContent = 'Đêm ' + n + ' — ' + NIGHT_NAMES[n];
-  const total = buildNight(n).lanterns.length, need = Math.ceil(TUNING.win_ratio * total - 1e-9);
-  document.getElementById('ov-sub').textContent = ONGDANG[n] + ' Giữ ít nhất ' + need + '/' + total + ' đèn sáng tới bình minh — đèn cạn dầu sẽ tắt.';
-  document.getElementById('ov-score').textContent = '';
-  const btn = document.getElementById('ov-btn'); btn.textContent = 'Vào Đêm ' + n;
-  document.getElementById('overlay').style.display = 'flex';
+  night = n; sim = new Simulation({ seed, night, creative: true }); view.build(night, sim.obstacles); acc = 0; yaw = 0; keys.clear(); recentShade = null; knownShades = new Set(sim.shades.map(s => s.id)); hitFx = 0; mode = 'play';
+  $('overlay').hidden = true; $('seed-label').hidden = true; $('home-button').hidden = false; $('menu-button').hidden = false;
+  for (const id of ['hud','fuel','inventory','help']) $(id).hidden = false;
 }
 function endNight() {
-  const won = sim.status === 'won';
-  if (won) { totalScore += sim.scoreValue; }
-  if (won && night === 3) {
-    mode = 'dawn';
-    document.getElementById('ov-title').textContent = 'Bình Minh ☀️';
-    document.getElementById('ov-sub').textContent = 'Mây đã giữ cả ba hòn đảo sáng tới bình minh.';
-    document.getElementById('ov-score').textContent = 'Tổng điểm: ' + totalScore;
-    document.getElementById('ov-btn').textContent = 'Chơi lại từ Đêm 1';
-  } else if (won) {
-    showIntro(night + 1); document.getElementById('ov-score').textContent = 'Điểm Đêm ' + night + ': ' + sim.scoreValue;
-    mode = 'intro-next';
-  } else {
-    mode = 'lost';
-    document.getElementById('ov-title').textContent = 'Thua 🌑 — Đêm ' + night;
-    const lit = sim.lanterns.filter((l) => l.lit).length;
-    document.getElementById('ov-sub').textContent = sim.player.flames <= 0 ? 'Hết ngọn lửa.' : 'Trời sáng mà chỉ còn ' + lit + '/' + sim.lanterns.length + ' đèn sáng (cần ' + sim.winNeed() + ').';
-    document.getElementById('ov-score').textContent = '';
-    document.getElementById('ov-btn').textContent = 'Chơi lại Đêm ' + night;
+  keys.clear(); $('menu-button').hidden = true; $('score-form').hidden = true;
+  if (sim.status === 'won') { totalScore += sim.scoreValue; nightsWon++; }
+  $('ov-score').textContent = `Tổng điểm các Đêm đã thắng: ${totalScore} · ${nightsWon}/3 Đêm`;
+  if (sim.status === 'won' && night < 3) { mode = 'next'; overlay(`Đêm ${night} đã qua`, `Ánh đèn còn sáng. Tiếp tục tới ${names[night + 1]}.`, `Vào Đêm ${night + 1}`); }
+  else {
+    mode = sim.status === 'won' ? 'dawn' : 'lost';
+    overlay(mode === 'dawn' ? 'Bình Minh ☀' : `Đêm ${night} khép lại`, mode === 'dawn' ? 'Mây đã giữ ánh sáng qua cả ba hòn đảo.' : sim.player.flames <= 0 ? 'Ngọn lửa cuối cùng đã tắt. Hành trình vẫn đang đợi bạn.' : 'Bình minh đến, nhưng chưa đủ đèn còn sáng.', mode === 'dawn' ? 'Hành trình mới' : 'Thử lại Đêm này');
+    $('score-form').hidden = false; $('save-status').textContent = ''; $('score-form').querySelector('button').disabled = false;
   }
-  document.getElementById('overlay').style.display = 'flex';
 }
-document.getElementById('ov-btn').addEventListener('click', () => {
-  if (mode === 'intro') startNight(night);
-  else if (mode === 'intro-next') startNight(night + 1);
-  else if (mode === 'dawn') { totalScore = 0; night = 1; showIntro(1); }
+$('ov-btn').onclick = () => {
+  if (mode === 'home') { seed = Number($('seed').value); if (!Number.isInteger(seed)) return $('seed').reportValidity(); totalScore = 0; nightsWon = 0; startNight(1); }
+  else if (mode === 'next') startNight(night + 1);
   else if (mode === 'lost') startNight(night);
-});
+  else if (mode === 'dawn') home();
+  else if (mode === 'pause-menu') { mode = 'play'; if (sim.paused) pauseToggle(); $('overlay').hidden = true; }
+};
+$('home-button').onclick = home;
+$('menu-button').onclick = () => { if (!sim.paused) pauseToggle(); mode = 'pause-menu'; $('score-form').hidden = true; overlay('Tạm dừng', 'Ánh đèn chờ bạn. Có thể đổi phím và cách hiển thị trong Cài đặt.', 'Tiếp tục'); };
 
-// ---------- Sync ----------
-function sync() {
-  // Nhấp nháy chậm 1 Hz theo sim_tick (dừng khi pause): 30 tick sáng, 30 tick mờ.
-  const blinkOn = Math.floor(sim.simTick / (TICK_RATE / 2)) % 2 === 0;
-  for (const L of sim.lanterns) {
-    let g = lanternMeshes.get(L.id); if (!g) { g = makeLantern(); scene.add(g); lanternMeshes.set(L.id, g); }
-    const u = g.userData, fuel = L.fuelU / TICK_RATE, low = L.lit && fuel < LOW_FUEL, dim = low && !blinkOn;
-    g.position.set(L.pos[0], L.pos[1], L.pos[2]);
-    u.light.intensity = L.lit ? (dim ? 0.6 : 3.2) : 0;
-    u.globe.material.emissive.setHex(L.lit ? (dim ? 0x5a3a10 : C.lanternOn) : 0x120a18);
-    u.globe.material.color.setHex(L.lit ? C.lanternCore : C.lanternOff);
-    u.globe.scale.setScalar(L.lit ? 1 : 0.8); // đèn tắt xẹp 20%
-    u.tear.visible = !L.lit;
-    u.bar.visible = L.lit;
-    if (L.lit) {
-      const f = Math.max(0, Math.min(1, fuel / 100));
-      u.fill.scale.x = Math.max(0.001, f); u.fill.position.x = -0.65 * (1 - f);
-      u.fill.material.color.setHex(low ? (colorBlind ? C.fuelLowCB : C.fuelLow) : C.fuel);
-      u.fill.material.opacity = dim ? 0.25 : 1;
-      u.bar.quaternion.copy(camera.quaternion);
+function hud() {
+  const p = sim.player, lit = sim.lanterns.filter(L => L.lit).length, capacity = sim._capacity(), fuelOf = L => L.fuelU / TICK_RATE;
+  $('hud-night').textContent = `Đêm ${night} · ${names[night]}`; $('hud-flames').textContent = `🔥 ${p.flames}`;
+  $('clock').textContent = sim.paused ? 'Ⅱ Tạm dừng' : `${Math.floor(Math.max(0, sim.timeLeft) / 60)}:${String(Math.floor(Math.max(0, sim.timeLeft) % 60)).padStart(2,'0')}`;
+  $('clock').classList.toggle('danger', sim.timeLeft <= 10);
+  $('hud-lanterns').textContent = `🏮 ${lit}/${sim.lanterns.length} · cần ${sim.winNeed()}`; $('hud-lanterns').classList.toggle('danger', lit < sim.winNeed()); $('hud-score').textContent = `${sim.scoreValue} điểm`;
+  $('fuel').replaceChildren();
+  for (const L of sim.lanterns) { const el = document.createElement('div'); el.textContent = `${L.lit ? '◉' : '◌'} ${L.id} · ${L.lit ? Math.ceil(fuelOf(L)) + '/100 dầu' : 'Chưa sáng'}`; el.classList.toggle('danger', L.lit && fuelOf(L) < TUNING.low_fuel_threshold); $('fuel').append(el); }
+  const cdInfo = [];
+  if (p.dashCd > 0) cdInfo.push(`Lướt ${(p.dashCd / 60).toFixed(1)}s`);
+  if (p.pulseCd > 0) cdInfo.push(`Tỏa ${(p.pulseCd / 60).toFixed(1)}s`);
+  if (p.charm > 0) cdInfo.push(`🍃 Bùa ${(p.charm / 60).toFixed(0)}s`);
+  $('inventory').textContent = `✦ ${p.carried}/${capacity}${cdInfo.length ? ' · ' + cdInfo.join(' · ') : ''}`;
+  const notices = [];
+  if (sim.timeLeft <= 10) notices.push(`⚠ Còn ${Math.ceil(sim.timeLeft)} giây đến bình minh`);
+  if (sim.windEnabled) { const phase = sim.simTick % (TUNING.wind_period_s * 60), before = (TUNING.wind_period_s - TUNING.wind_duration_s) * 60 - phase; if (before > 0 && before <= TUNING.wind_warn_s * 60) notices.push('⚠ Gió sắp thổi!'); else if (sim.windActive) notices.push('⚠ Gió đang thổi'); }
+  const low = sim.lanterns.filter(L => L.lit && fuelOf(L) < TUNING.low_fuel_threshold); if (low.length) notices.push('⚠ Dầu dưới 30: ' + low.map(L => L.id).join(', '));
+  $('shade-arrow').hidden = true;
+  if (recentShade && sim.simTick < recentShade.until) {
+    notices.push('⚠ Bóng Mực xuất hiện — theo mũi tên ở mép màn hình');
+    const s = sim.shades.find(s => s.id === recentShade.id);
+    if (s) {
+      const v = new THREE.Vector3(...s.pos).project(view.camera), behind = v.z > 1 ? -1 : 1;
+      const x = v.x * behind || .001, y = -v.y * behind, scale = 1 / Math.max(Math.abs(x), Math.abs(y), .001);
+      const arrow = $('shade-arrow'); arrow.hidden = false; arrow.style.left = `${50 + x * scale * 46}%`; arrow.style.top = `${50 + y * scale * 43}%`; arrow.style.transform = `translate(-50%,-50%) rotate(${Math.atan2(y, x) + Math.PI / 2}rad)`;
     }
   }
-  const ids = new Set();
-  for (const m of sim.motes) { if (!m.active) continue; ids.add(m.id); let mesh = moteMeshes.get(m.id); if (!mesh) { mesh = makeMote(m.kind); scene.add(mesh); moteMeshes.set(m.id, mesh); } mesh.position.set(m.pos[0], m.pos[1] + 0.5, m.pos[2]); }
-  for (const [id, mesh] of moteMeshes) if (!ids.has(id)) { scene.remove(mesh); moteMeshes.delete(id); }
-  const sid = new Set();
-  for (const s of sim.shades) { sid.add(s.id); let g = shadeMeshes.get(s.id); if (!g) { g = makeShade(); scene.add(g); shadeMeshes.set(s.id, g); } g.position.set(s.pos[0], s.pos[1], s.pos[2]); g.userData.b.material.opacity = (s.state === 'stunned') ? 0.4 : 0.9; g.userData.b.material.color.setHex(s.state === 'stunned' ? C.shadeStun : C.shade); }
-  for (const [id, g] of shadeMeshes) if (!sid.has(id)) { scene.remove(g); shadeMeshes.delete(id); }
-  const did = new Set();
-  for (const d of sim.drifters) { if (d.state === 'removed') continue; did.add(d.id); let g = drifterMeshes.get(d.id); if (!g) { g = makeDrifter(); scene.add(g); drifterMeshes.set(d.id, g); } g.position.set(d.pos[0], d.pos[1] + 1.2, d.pos[2]); }
-  for (const [id, g] of drifterMeshes) if (!did.has(id)) { scene.remove(g); drifterMeshes.delete(id); }
-  for (const c of sim.charms) { let g = charmMeshes.get(c.id); if (!g) { g = makeCharm(); scene.add(g); charmMeshes.set(c.id, g); } g.position.set(c.pos[0], c.pos[1] + 0.6, c.pos[2]); g.visible = c.available; }
-  const total = sim.lanterns.length, lit = sim.lanterns.filter((l) => l.lit).length;
-  ambient.intensity = 0.15 + 0.55 * (lit / total);
+  const text = notices.join('\n'); if ($('notices').textContent !== text) $('notices').textContent = text;
 }
-function updateCamera() { const p = sim.player.pos; const fx = Math.sin(camYaw), fz = Math.cos(camYaw); camera.position.set(p[0] - fx * 11, p[1] + 7, p[2] - fz * 11); camera.lookAt(p[0], p[1] + 1, p[2]); playerMesh.position.set(p[0], p[1], p[2]); playerMesh.rotation.y = Math.atan2(fx, fz); }
-function updateHUD() {
-  const el = (i) => document.getElementById(i); const p = sim.player;
-  el('hud-flames').textContent = '🔥 ' + p.flames;
-  const total = sim.lanterns.length, lit = sim.lanterns.filter((l) => l.lit).length, need = sim.winNeed();
-  el('hud-night').textContent = 'Đêm ' + sim.night; el('hud-score').textContent = sim.scoreValue + ' điểm';
-  const lan = el('hud-lanterns'); lan.textContent = '🏮 ' + lit + '/' + total + ' (cần ' + need + ')'; lan.classList.toggle('warn', lit < need);
-  const tl = Math.max(0, sim.timeLeft); const mm = String(Math.floor(tl / 60)).padStart(2, '0'); const ss = String(Math.floor(tl % 60)).padStart(2, '0');
-  const clock = el('clock'); clock.textContent = mm + ':' + ss; clock.classList.toggle('danger', tl <= 30);
-  // Thanh đom đóm theo sức chứa hiện tại (10 + 2 x số lần thắp, tối đa 20), kèm số đang mang / sức chứa.
-  const cap = sim._capacity(), bar = el('motebar');
-  if (bar.querySelectorAll('i').length !== cap) { bar.innerHTML = ''; for (let i = 0; i < cap; i++) bar.appendChild(document.createElement('i')); bar.appendChild(document.createElement('b')); }
-  bar.querySelectorAll('i').forEach((c, i) => { c.className = i < p.carried ? 'on' : ''; });
-  bar.querySelector('b').textContent = p.carried + ' / ' + cap;
-  // sim.player đếm bằng tick (dashCd, pulseCd, charm); đổi sang giây tại đây.
-  const dashS = p.dashCd / TICK_RATE, pulseS = p.pulseCd / TICK_RATE, charmS = p.charm / TICK_RATE;
-  el('hud-dash').textContent = dashS > 0 ? 'Lướt ' + dashS.toFixed(1) + 's' : 'Lướt ✔';
-  el('hud-pulse').textContent = pulseS > 0 ? 'Tỏa ' + pulseS.toFixed(1) + 's' : 'Tỏa ✔';
-  const charm = el('hud-charm'); charm.style.display = charmS > 0 ? 'inline-block' : 'none'; charm.textContent = '🍃 Bùa ' + charmS.toFixed(0) + 's';
-}
-function resize() { const w = app.clientWidth, h = app.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
-addEventListener('resize', resize);
-
-let pausedPrev = false;
 function loop(now) {
-  requestAnimationFrame(loop);
-  const dt = Math.min(0.1, (now - lastT) / 1000 || 0); lastT = now;
-  if (mode === 'play') {
+  const dt = Math.min(.1, (now - last) / 1000 || 0); last = now;
+  if (mode === 'play' && !document.querySelector('dialog[open]')) {
     acc += dt;
-    while (acc >= DT) { readInput(); sim.step(held); acc -= DT; if (sim.status !== 'playing') { mode = 'ending'; break; } }
-    sync(); updateCamera();
-    if (mode === 'ending') endNight();
+    while (acc >= DT) {
+      const events = sim.step(readInput()); acc -= DT;
+      // Lõi không phát event khi sinh Bóng (giữ nguyên đầu ra headless) nên phát hiện bằng id mới xuất hiện.
+      for (const s of sim.shades) if (!knownShades.has(s.id)) { knownShades.add(s.id); recentShade = { id: s.id, until: sim.simTick + 180 }; }
+      if (!settings.reducedMotion && events.some(e => e.name === 'player_hit')) { hitFx = now + 350; $('flash').classList.add('on'); }
+      if (sim.status !== 'playing') { endNight(); break; }
+    }
+    const hitting = now < hitFx;
+    if (!hitting) $('flash').classList.remove('on');
+    view.follow(sim, yaw, hitting ? .35 : 0); hud();
   }
-  // Vẽ trước HUD: một lỗi ở HUD không được làm đen canvas.
-  renderer.render(scene, camera);
-  if (mode === 'play') { try { updateHUD(); } catch (e) { console.error('HUD:', e); } }
+  view.sync(sim, settings); view.render(); requestAnimationFrame(loop);
 }
-// Hiện sẵn đảo + Mây phía sau màn hình mở đầu (để thấy ngay có gì đó, không bị đen).
-buildWorldMeshes(1);
-playerMesh.position.set(0, 0, 0);
-camera.position.set(0, 22, 40); camera.lookAt(0, 0, 0);
-setColorBlind(colorBlind);
-showIntro(1); resize(); requestAnimationFrame(loop);
-window.__gameReady = true; // báo cho đồng hồ canh trong index.html biết game đã khởi động
+applySettings(); requestAnimationFrame(loop); window.__gameReady = true;

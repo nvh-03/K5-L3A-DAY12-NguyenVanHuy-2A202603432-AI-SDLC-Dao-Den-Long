@@ -30,6 +30,30 @@
 - Lớp hoá rõ (config/geometry/sim/headless) để sửa một chỗ không lan ra chỗ khác.
 - Test tự động bắt lỗi sớm (ví dụ lỗi spawn Đêm 3) thay vì chạy thử bằng mắt nhiều lần.
 
+## Phase 3 (Ticket-03)
+
+| Bước | Công cụ | Việc làm |
+|---|---|---|
+| Bản đầu | Claude Code (Haiku) | Thêm dầu/drain/luật thắng; tự viết ADR/CHANGELOG. Lệch ticket nhiều chỗ (xem retro §3) |
+| Review & sửa | Claude Code (Opus/Fable) | Đối chiếu từng dòng ticket; viết lại lõi (dầu số nguyên 1/60, nạp từng phần, thắp lại 5), 18 scenario `p3-*`, nâng bộ kiểm contract/fuzz lên v1.2, kiểm chéo bộ kiểm bằng 7 đầu ra hỏng, ADR-001, bằng chứng; làm trong git worktree để không đè WIP Phase 4 |
+
+## Phase 4 (Ticket-04)
+
+| Bước | Công cụ | Việc làm |
+|---|---|---|
+| WIP | Claude Code (phiên khác) | Bench/soak/leaderboard/settings, `GameView` instanced, cây/đá |
+| Gộp & hoàn thiện | Claude Code (Opus) | Gộp WIP lên lõi Phase 3; cảnh bench dùng luật wander của lõi; vsync off, viewport 1280×720; soak đo RSS sau GC và kiểm rò rỉ tới 400 Đêm; sửa trợ năng (chữ lớn, 18 px, mũi tên Bóng Mực, rung/chớp), tên tiếng Việt; sửa sàn Đêm 3; cổng test `platform.js`; chạy bench/soak thật; ảnh `--preview`; tài liệu và gói phát hành |
+
 ## Tổng ước tính
-- **Tổng token:** _(điền)_
-- **Tổng chi phí ước tính:** _(điền)_
+
+Số đo chính xác: chạy `/cost` trong mỗi phiên Claude Code, hoặc xem trang Usage của tài khoản, rồi cộng lại. Ước tính thô dưới đây dựa trên số lượt và độ dài ngữ cảnh:
+
+| Phase | Token đầu vào (phần lớn từ prompt cache) | Token đầu ra |
+|---|---|---|
+| 1 | ~2–3 triệu | ~60–90 nghìn |
+| 2 | ~3–4 triệu | ~100–150 nghìn |
+| 3 | ~2–3 triệu | ~80–120 nghìn |
+| 4 | ~3–5 triệu | ~100–150 nghìn |
+| **Tổng** | **~10–15 triệu** | **~0.3–0.5 triệu** |
+
+- **Tổng chi phí ước tính:** phụ thuộc model và tỉ lệ cache của từng phiên. Với phần lớn đầu vào đọc từ cache, chi phí chủ yếu nằm ở token đầu ra và lần ghi cache đầu tiên. Hãy điền số thật từ `/cost` trước khi nộp.

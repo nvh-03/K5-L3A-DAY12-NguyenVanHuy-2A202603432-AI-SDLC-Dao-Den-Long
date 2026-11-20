@@ -1,16 +1,20 @@
 {
   "name": "dao-den-long",
   "version": "1.0.0",
-  "description": "Đảo Đèn Lồng - game 3D (Phase 1 / PRD-0). Lõi mô phỏng tất định + headless theo Test Contract v1.0.",
+  "description": "Đảo Đèn Lồng - game 3D ba Đêm. Lõi mô phỏng tất định dùng chung cho web (Three.js) và headless theo Test Contract v1.3.",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "web": "node bin/serve.js",
     "headless": "node bin/headless.js",
+    "bench": "node bin/bench.js --seed 42 --duration 30 --out bench.json",
+    "soak": "node --expose-gc --max-semi-space-size=1 bin/soak.js --seed 7 --nights 10 --out soak.json",
     "test": "node tests/all.js",
     "test:unit": "node tests/run.js",
     "test:contract": "node tests/contract-check.js",
-    "test:invariants": "node tests/invariants.js"
+    "test:invariants": "node tests/invariants.js",
+    "test:platform": "node tests/platform.js"
   },
   "engines": {
     "node": ">=18"
