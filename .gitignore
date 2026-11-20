@@ -23,6 +23,7 @@ Thumbs.db
 
 # File lớn tạm (demo.mp4 nên đính kèm Release thay vì commit)
 *.log
+*.zip
 docs/demo/*.mp4
 
 # Dữ liệu chạy cục bộ (bảng xếp hạng do server ghi)
