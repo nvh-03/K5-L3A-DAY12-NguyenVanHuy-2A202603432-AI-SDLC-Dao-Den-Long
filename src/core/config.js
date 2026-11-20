@@ -19,11 +19,18 @@ export const TUNING = {
   firefly_start: 20,
   firefly_cap: 30,
   firefly_spawn_period: 240, // mỗi 240 tick thêm 1 nếu dưới trần
-  // Đèn lồng
+  // Đèn lồng (Phase 2)
   lantern_cost: 10,
   interact_radius: 2.0,
   safe_radius: 6.0,
   safe_push_ticks: 30,       // bóng trong vùng khi vừa thắp bị đẩy ra tối đa 30 tick
+  // Đèn nhiên liệu (Phase 3)
+  fuel_max: 100,
+  fuel_decay_per_s: 1.0,     // 1/60 mỗi tick
+  fuel_per_mote: 10,         // mỗi đom đóm thêm 10 fuel
+  relight_cost: 5,           // đèn từng sáng chỉ cần 5
+  low_fuel_threshold: 30,    // fuel < 30 mất vùng an toàn, Bóng Mực có thể hút
+  drain_per_s: 5.0,          // Bóng Mực hút 5/giây (5/60 mỗi tick)
   // Tỏa Sáng (pulse)
   pulse_cost: 3,
   pulse_radius: 5.0,         // 3D
@@ -51,11 +58,13 @@ export const TUNING = {
   // Rơi khỏi đảo
   fall_y: -10.0,
   fall_wait_ticks: 60,
-  // Máu / thời gian
+  // Máu / thời gian (Phase 3: thay đổi)
   flames: 3,
-  night1_duration_s: 300,
-  night2_duration_s: 330,
-  night3_duration_s: 360,
+  night1_duration_s: 240,
+  night2_duration_s: 270,
+  night3_duration_s: 300,
+  win_ratio: 0.6,            // cần ceil(0.6 * tổng đèn) đèn sáng để thắng
+  capacity_max: 20,          // sức chứa tối đa
   // Gió Lạc (Drifter)
   drifter_speed: 7.0,
   drifter_idle_speed: 2.0,
@@ -78,11 +87,15 @@ export const TUNING = {
 };
 
 export const SCORE = {
-  per_deposit: 10,       // +10 mỗi đom đóm NẠP vào đèn
-  per_lantern: 100,
-  per_pulse_hit: 5,      // +5 mỗi Bóng Mực trúng Tỏa Sáng (mỗi con mỗi lần)
-  per_second_left: 2,    // khi thắng: + floor(giây còn lại) * 2
-  per_flame_left: 50,
+  // Phase 3: điểm mới
+  per_mote_deposited: 5,      // +5 mỗi đom đóm nạp (thắp, thắp lại, châm dầu)
+  per_lantern_first_light: 100, // +100 thắp lần đầu
+  per_lantern_relight: 40,    // +40 thắp lại
+  per_pulse_hit: 5,           // +5 mỗi Bóng Mực trúng Tỏa Sáng
+  per_pulse_hit_drain: 15,    // +15 nếu trúng lúc đang drain (thay vì +5)
+  per_lantern_at_dawn: 50,    // +50 mỗi đèn sáng ở bình minh (khi thắng)
+  per_fuel_at_dawn: 1,        // +floor(fuel) mỗi đèn ở bình minh (khi thắng)
+  per_flame_at_dawn: 50,      // +50 mỗi ngọn lửa còn lại ở bình minh (khi thắng)
 };
 
 // --- Tạo điểm theo vòng: góc đo từ +X, ngược chiều kim đồng hồ, trên mặt XZ ---
